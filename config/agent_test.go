@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sykesm/kubernetes-cpi/config"
+	"github.com/ScarletTanager/kubernetes-cpi/config"
 )
 
 var _ = Describe("Agent Config", func() {

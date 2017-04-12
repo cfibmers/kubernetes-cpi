@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sykesm/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 )
 
 var _ = Describe("Remarshal", func() {

@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/sykesm/kubernetes-cpi/config"
-	"github.com/sykesm/kubernetes-cpi/kubecluster"
+	"github.com/ScarletTanager/kubernetes-cpi/config"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/1.4/pkg/api/v1"
 )
 

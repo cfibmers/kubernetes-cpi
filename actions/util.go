@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	uuid "github.com/nu7hatch/gouuid"
-	"github.com/sykesm/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 )
 
 func NewVMCID(context, agentID string) cpi.VMCID {

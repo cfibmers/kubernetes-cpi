@@ -8,9 +8,9 @@ import (
 	"k8s.io/client-go/1.4/pkg/runtime"
 	"k8s.io/client-go/1.4/testing"
 
-	"github.com/sykesm/kubernetes-cpi/actions"
-	"github.com/sykesm/kubernetes-cpi/cpi"
-	"github.com/sykesm/kubernetes-cpi/kubecluster/fakes"
+	"github.com/ScarletTanager/kubernetes-cpi/actions"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

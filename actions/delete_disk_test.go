@@ -10,9 +10,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sykesm/kubernetes-cpi/actions"
-	"github.com/sykesm/kubernetes-cpi/cpi"
-	"github.com/sykesm/kubernetes-cpi/kubecluster/fakes"
+	"github.com/ScarletTanager/kubernetes-cpi/actions"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
 )
 
 var _ = Describe("DeleteDisk", func() {

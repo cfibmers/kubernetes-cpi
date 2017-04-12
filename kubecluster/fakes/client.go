@@ -1,7 +1,7 @@
 package fakes
 
 import (
-	"github.com/sykesm/kubernetes-cpi/kubecluster"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/1.4/kubernetes/fake"
 	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
 	"k8s.io/client-go/1.4/pkg/runtime"

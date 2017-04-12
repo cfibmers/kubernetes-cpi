@@ -14,7 +14,7 @@ var _ = Describe("main", func() {
 				"method": "create_stemcell",
 				"arguments": [
 					"/tmp/stemcell-manager488652969/image",
-					{ "image": "sykesm/kubernetes-stemcell:3309" }
+					{ "image": "ScarletTanager/kubernetes-stemcell:3309" }
 				],
 				"context": {
 					"director_uuid": "354b13ee-065a-4953-4436-77772e3854a8"

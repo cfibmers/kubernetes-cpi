@@ -3,8 +3,8 @@ package actions
 import (
 	"net/http"
 
-	"github.com/sykesm/kubernetes-cpi/cpi"
-	"github.com/sykesm/kubernetes-cpi/kubecluster"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
 	"k8s.io/client-go/1.4/pkg/api/errors"
 	"k8s.io/client-go/1.4/pkg/api/v1"

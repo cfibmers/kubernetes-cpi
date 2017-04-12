@@ -1,8 +1,8 @@
 package actions_test
 
 import (
-	"github.com/sykesm/kubernetes-cpi/actions"
-	"github.com/sykesm/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/actions"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

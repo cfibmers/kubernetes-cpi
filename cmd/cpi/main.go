@@ -10,10 +10,10 @@ import (
 
 	"code.cloudfoundry.org/clock"
 
-	"github.com/sykesm/kubernetes-cpi/actions"
-	"github.com/sykesm/kubernetes-cpi/config"
-	"github.com/sykesm/kubernetes-cpi/cpi"
-	"github.com/sykesm/kubernetes-cpi/kubecluster"
+	"github.com/ScarletTanager/kubernetes-cpi/actions"
+	"github.com/ScarletTanager/kubernetes-cpi/config"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 )
 
 const (

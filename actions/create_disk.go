@@ -3,8 +3,8 @@ package actions
 import (
 	"fmt"
 
-	"github.com/sykesm/kubernetes-cpi/cpi"
-	"github.com/sykesm/kubernetes-cpi/kubecluster"
+	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/1.4/pkg/api/resource"
 	"k8s.io/client-go/1.4/pkg/api/v1"
 )
