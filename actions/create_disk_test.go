@@ -53,7 +53,8 @@ var _ = Describe("CreateDisk", func() {
 		Expect(fakeProvider.NewArgsForCall(0)).To(Equal("bosh"))
 	})
 
-	It("creates a persistent volume", func() {
+	// Skip for now until we decide where to go with volumes
+	XIt("creates a persistent volume", func() {
 		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
@@ -100,9 +101,12 @@ var _ = Describe("CreateDisk", func() {
 				Labels: map[string]string{
 					"bosh.cloudfoundry.org/disk-id": "disk-guid",
 				},
+				Annotations: map[string]string{
+					"volume.beta.kubernetes.io/storage-class": "ibmc-file-bronze",
+				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
-				VolumeName:  "volume-disk-guid",
+				// VolumeName:  "volume-disk-guid",
 				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{

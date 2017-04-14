@@ -36,23 +36,23 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		return "", err
 	}
 
-	volumeName := "volume-" + diskID
+	// volumeName := "volume-" + diskID
 
-	_, err = client.PersistentVolumes().Create(&v1.PersistentVolume{
-		ObjectMeta: v1.ObjectMeta{
-			Name: volumeName,
-			Labels: map[string]string{
-				"bosh.cloudfoundry.org/disk-id": diskID,
-			},
-		},
-		Spec: v1.PersistentVolumeSpec{
-			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
-			Capacity: v1.ResourceList{
-				v1.ResourceStorage: volumeSize,
-			},
-			PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRecycle,
-		},
-	})
+	// _, err = client.PersistentVolumes().Create(&v1.PersistentVolume{
+	// 	ObjectMeta: v1.ObjectMeta{
+	// 		Name: volumeName,
+	// 		Labels: map[string]string{
+	// 			"bosh.cloudfoundry.org/disk-id": diskID,
+	// 		},
+	// 	},
+	// 	Spec: v1.PersistentVolumeSpec{
+	// 		AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+	// 		Capacity: v1.ResourceList{
+	// 			v1.ResourceStorage: volumeSize,
+	// 		},
+	// 		PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRecycle,
+	// 	},
+	// })
 
 	if err != nil {
 		return "", err
@@ -62,12 +62,15 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "disk-" + diskID,
 			Namespace: client.Namespace(),
+			Annotations: map[string]string{
+				"volume.beta.kubernetes.io/storage-class": "ibmc-file-bronze",
+			},
 			Labels: map[string]string{
 				"bosh.cloudfoundry.org/disk-id": diskID,
 			},
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
-			VolumeName:  volumeName,
+			// VolumeName:  volumeName,
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 			Resources: v1.ResourceRequirements{
 				Requests: v1.ResourceList{
