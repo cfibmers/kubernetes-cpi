@@ -76,7 +76,7 @@ var _ = Describe("CreateDisk", func() {
 				Capacity: v1.ResourceList{
 					v1.ResourceStorage: resource.MustParse("1000Mi"),
 				},
-				PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
+				PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRecycle,
 			},
 		}))
 	})

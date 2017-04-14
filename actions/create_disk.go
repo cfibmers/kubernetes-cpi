@@ -50,7 +50,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 			Capacity: v1.ResourceList{
 				v1.ResourceStorage: volumeSize,
 			},
-			PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
+			PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRecycle,
 		},
 	})
 
