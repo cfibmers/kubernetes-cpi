@@ -42,6 +42,10 @@ func (c *Client) PersistentVolumeClaims() core.PersistentVolumeClaimInterface {
 	return c.Core().PersistentVolumeClaims(c.Namespace())
 }
 
+func (c *Client) PersistentVolumes() core.PersistentVolumeInterface {
+	return c.Core().PersistentVolumes()
+}
+
 func (c *Client) Pods() core.PodInterface {
 	return c.Core().Pods(c.Namespace())
 }
@@ -49,6 +53,7 @@ func (c *Client) Pods() core.PodInterface {
 func (c *Client) MatchingActions(verb, resource string) []testing.Action {
 	result := []testing.Action{}
 	for _, action := range c.Actions() {
+		// DEBUG
 		if action.Matches(verb, resource) {
 			result = append(result, action)
 		}

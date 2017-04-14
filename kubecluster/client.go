@@ -12,6 +12,7 @@ type Client interface {
 	Core() core.CoreInterface
 
 	ConfigMaps() core.ConfigMapInterface
+	PersistentVolumes() core.PersistentVolumeInterface
 	PersistentVolumeClaims() core.PersistentVolumeClaimInterface
 	Pods() core.PodInterface
 	Services() core.ServiceInterface
@@ -40,6 +41,10 @@ func (c *client) ConfigMaps() core.ConfigMapInterface {
 
 func (c *client) PersistentVolumeClaims() core.PersistentVolumeClaimInterface {
 	return c.Core().PersistentVolumeClaims(c.namespace)
+}
+
+func (c *client) PersistentVolumes() core.PersistentVolumeInterface {
+	return c.Core().PersistentVolumes()
 }
 
 func (c *client) Pods() core.PodInterface {

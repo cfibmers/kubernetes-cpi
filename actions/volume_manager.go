@@ -120,7 +120,7 @@ func (v *VolumeManager) recreatePod(client kubecluster.Client, op Operation, age
 	}
 
 	if !ready {
-		return errors.New("Pod recreate failed with a FREAKING timeout")
+		return errors.New("Pod recreate failed with a timeout")
 	}
 
 	// TODO: Need an agent readiness check that's real

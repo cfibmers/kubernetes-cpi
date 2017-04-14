@@ -36,6 +36,28 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		return "", err
 	}
 
+	volumeName := "volume-" + diskID
+
+	_, err = client.PersistentVolumes().Create(&v1.PersistentVolume{
+		ObjectMeta: v1.ObjectMeta{
+			Name: volumeName,
+			Labels: map[string]string{
+				"bosh.cloudfoundry.org/disk-id": diskID,
+			},
+		},
+		Spec: v1.PersistentVolumeSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+			Capacity: v1.ResourceList{
+				v1.ResourceStorage: volumeSize,
+			},
+			PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
+		},
+	})
+
+	if err != nil {
+		return "", err
+	}
+
 	_, err = client.PersistentVolumeClaims().Create(&v1.PersistentVolumeClaim{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "disk-" + diskID,
@@ -45,6 +67,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 			},
 		},
 		Spec: v1.PersistentVolumeClaimSpec{
+			VolumeName:  volumeName,
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 			Resources: v1.ResourceRequirements{
 				Requests: v1.ResourceList{
@@ -53,6 +76,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 			},
 		},
 	})
+
 	if err != nil {
 		return "", err
 	}

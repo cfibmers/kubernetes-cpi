@@ -53,6 +53,34 @@ var _ = Describe("CreateDisk", func() {
 		Expect(fakeProvider.NewArgsForCall(0)).To(Equal("bosh"))
 	})
 
+	It("creates a persistent volume", func() {
+		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
+
+		matches := fakeClient.MatchingActions("create", "persistentvolumes")
+		Expect(matches).To(HaveLen(1))
+
+		createAction := matches[0].(testing.CreateAction)
+
+		pv := createAction.GetObject().(*v1.PersistentVolume)
+		Expect(pv).To(Equal(&v1.PersistentVolume{
+			ObjectMeta: v1.ObjectMeta{
+				Name: "volume-disk-guid",
+				Labels: map[string]string{
+					"bosh.cloudfoundry.org/disk-id": "disk-guid",
+				},
+			},
+			Spec: v1.PersistentVolumeSpec{
+				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+				Capacity: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("1000Mi"),
+				},
+				PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
+			},
+		}))
+	})
+
 	It("creates a persistent volume claim", func() {
 		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
@@ -74,6 +102,7 @@ var _ = Describe("CreateDisk", func() {
 				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
+				VolumeName:  "volume-disk-guid",
 				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{
