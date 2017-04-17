@@ -108,7 +108,7 @@ var _ = Describe("CreateDisk", func() {
 			},
 			Spec: v1.PersistentVolumeClaimSpec{
 				// VolumeName:  "volume-disk-guid",
-				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{
 						v1.ResourceStorage: resource.MustParse("1000Mi"),
