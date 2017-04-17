@@ -54,9 +54,9 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 	// 	},
 	// })
 
-	if err != nil {
-		return "", err
-	}
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	_, err = client.PersistentVolumeClaims().Create(&v1.PersistentVolumeClaim{
 		ObjectMeta: v1.ObjectMeta{
