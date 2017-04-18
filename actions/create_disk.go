@@ -32,7 +32,7 @@ type DiskCreator struct {
 	GUIDGeneratorFunc func() (string, error)
 }
 
-func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties) (cpi.DiskCID, error) {
+func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties, vmcid cpi.VMCID) (cpi.DiskCID, error) {
 	diskID, err := d.GUIDGeneratorFunc()
 	if err != nil {
 		return "", err

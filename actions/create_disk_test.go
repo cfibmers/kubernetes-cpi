@@ -30,6 +30,9 @@ var _ = Describe("CreateDisk", func() {
 		diskCreator    *actions.DiskCreator
 		pvcMeta        v1.ObjectMeta
 		initialPvcSpec v1.PersistentVolumeClaimSpec
+
+		// Just needed to make things work, not actually used...
+		vmcid cpi.VMCID
 	)
 
 	BeforeEach(func() {
@@ -87,10 +90,12 @@ var _ = Describe("CreateDisk", func() {
 			DiskReadyTimeout:  5 * time.Second,
 			GUIDGeneratorFunc: func() (string, error) { return "disk-guid", nil },
 		}
+
+		vmcid = "vm-guid"
 	})
 
 	It("gets a client for the appropriate context", func() {
-		_, err := diskCreator.CreateDisk(1000, cloudProps)
+		_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeProvider.NewCallCount()).To(Equal(1))
@@ -99,7 +104,7 @@ var _ = Describe("CreateDisk", func() {
 
 	// Skip for now until we decide where to go with volumes
 	XIt("creates a persistent volume", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps)
+		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -127,7 +132,7 @@ var _ = Describe("CreateDisk", func() {
 	})
 
 	It("creates a persistent volume claim", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps)
+		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -168,7 +173,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("gets a client for the appropriate context", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps)
+			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 			Expect(err).To(MatchError("boom"))
 		})
 	})
@@ -181,7 +186,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps)
+			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
 			Expect(err).To(MatchError("create-pvc-welp"))
 			Expect(fakeClient.MatchingActions("create", "persistentvolumeclaims")).To(HaveLen(1))
 		})
