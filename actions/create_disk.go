@@ -38,7 +38,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		return "", err
 	}
 
-	volumeSize, err := resource.ParseQuantity(fmt.Sprintf("%dMi", size))
+	volumeSize, err := resource.ParseQuantity(fmt.Sprintf("%dGi", size))
 	if err != nil {
 		return "", err
 	}

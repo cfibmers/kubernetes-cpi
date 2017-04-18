@@ -47,7 +47,7 @@ var _ = Describe("CreateDisk", func() {
 			},
 		}
 
-		res, _ := resource.ParseQuantity("1000Mi")
+		res, _ := resource.ParseQuantity("1Gi")
 
 		initialPvcSpec = v1.PersistentVolumeClaimSpec{
 			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
@@ -95,7 +95,7 @@ var _ = Describe("CreateDisk", func() {
 	})
 
 	It("gets a client for the appropriate context", func() {
-		_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		_, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeProvider.NewCallCount()).To(Equal(1))
@@ -104,7 +104,7 @@ var _ = Describe("CreateDisk", func() {
 
 	// Skip for now until we decide where to go with volumes
 	XIt("creates a persistent volume", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		diskCID, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -124,7 +124,7 @@ var _ = Describe("CreateDisk", func() {
 			Spec: v1.PersistentVolumeSpec{
 				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
 				Capacity: v1.ResourceList{
-					v1.ResourceStorage: resource.MustParse("1000Mi"),
+					v1.ResourceStorage: resource.MustParse("1Gi"),
 				},
 				PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRecycle,
 			},
@@ -132,7 +132,7 @@ var _ = Describe("CreateDisk", func() {
 	})
 
 	It("creates a persistent volume claim", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		diskCID, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -160,7 +160,7 @@ var _ = Describe("CreateDisk", func() {
 				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
 				Resources: v1.ResourceRequirements{
 					Requests: v1.ResourceList{
-						v1.ResourceStorage: resource.MustParse("1000Mi"),
+						v1.ResourceStorage: resource.MustParse("1Gi"),
 					},
 				},
 			},
@@ -173,7 +173,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("gets a client for the appropriate context", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+			_, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
 			Expect(err).To(MatchError("boom"))
 		})
 	})
@@ -186,7 +186,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+			_, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
 			Expect(err).To(MatchError("create-pvc-welp"))
 			Expect(fakeClient.MatchingActions("create", "persistentvolumeclaims")).To(HaveLen(1))
 		})
