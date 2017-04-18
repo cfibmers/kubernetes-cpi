@@ -2,10 +2,14 @@ package actions_test
 
 import (
 	"errors"
+	"time"
+
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	"k8s.io/client-go/1.4/pkg/api/resource"
 	"k8s.io/client-go/1.4/pkg/api/v1"
 	"k8s.io/client-go/1.4/pkg/runtime"
+	"k8s.io/client-go/1.4/pkg/watch"
 	"k8s.io/client-go/1.4/testing"
 
 	"github.com/ScarletTanager/kubernetes-cpi/actions"
@@ -20,33 +24,73 @@ var _ = Describe("CreateDisk", func() {
 	var (
 		fakeClient   *fakes.Client
 		fakeProvider *fakes.ClientProvider
-		vmcid        cpi.VMCID
+		fakeWatch    *watch.FakeWatcher
 		cloudProps   actions.CreateDiskCloudProperties
 
-		diskCreator *actions.DiskCreator
+		diskCreator    *actions.DiskCreator
+		pvcMeta        v1.ObjectMeta
+		initialPvcSpec v1.PersistentVolumeClaimSpec
 	)
 
 	BeforeEach(func() {
+		pvcMeta = v1.ObjectMeta{
+			Name:      "disk-disk-guid",
+			Namespace: "bosh-namespace",
+			Annotations: map[string]string{
+				"annotation-key": "annotation-value",
+			},
+			Labels: map[string]string{
+				"key": "value",
+			},
+		}
+
+		res, _ := resource.ParseQuantity("1000Mi")
+
+		initialPvcSpec = v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: res,
+				},
+			},
+		}
+
 		fakeClient = fakes.NewClient()
 		fakeClient.ContextReturns("bosh")
 		fakeClient.NamespaceReturns("bosh-namespace")
 
+		fakeWatch = watch.NewFakeWithChanSize(1)
+		fakeWatch.Modify(&v1.PersistentVolumeClaim{
+			ObjectMeta: pvcMeta,
+			Spec:       initialPvcSpec,
+			Status: v1.PersistentVolumeClaimStatus{
+				Phase:       v1.ClaimBound,
+				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
+				Capacity: v1.ResourceList{
+					v1.ResourceStorage: res,
+				},
+			},
+		})
+
+		fakeClient.PrependWatchReactor("*", testing.DefaultWatchReactor(fakeWatch, nil))
+
 		fakeProvider = &fakes.ClientProvider{}
 		fakeProvider.NewReturns(fakeClient, nil)
 
-		vmcid = actions.NewVMCID("bosh", "agent-id")
 		cloudProps = actions.CreateDiskCloudProperties{
 			Context: "bosh",
 		}
 
 		diskCreator = &actions.DiskCreator{
 			ClientProvider:    fakeProvider,
+			Clock:             fakeclock.NewFakeClock(time.Now()),
+			DiskReadyTimeout:  5 * time.Second,
 			GUIDGeneratorFunc: func() (string, error) { return "disk-guid", nil },
 		}
 	})
 
 	It("gets a client for the appropriate context", func() {
-		_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		_, err := diskCreator.CreateDisk(1000, cloudProps)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(fakeProvider.NewCallCount()).To(Equal(1))
@@ -55,7 +99,7 @@ var _ = Describe("CreateDisk", func() {
 
 	// Skip for now until we decide where to go with volumes
 	XIt("creates a persistent volume", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		diskCID, err := diskCreator.CreateDisk(1000, cloudProps)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -83,7 +127,7 @@ var _ = Describe("CreateDisk", func() {
 	})
 
 	It("creates a persistent volume claim", func() {
-		diskCID, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+		diskCID, err := diskCreator.CreateDisk(1000, cloudProps)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(diskCID).To(Equal(cpi.DiskCID("bosh:disk-guid")))
 
@@ -124,7 +168,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("gets a client for the appropriate context", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+			_, err := diskCreator.CreateDisk(1000, cloudProps)
 			Expect(err).To(MatchError("boom"))
 		})
 	})
@@ -137,7 +181,7 @@ var _ = Describe("CreateDisk", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := diskCreator.CreateDisk(1000, cloudProps, vmcid)
+			_, err := diskCreator.CreateDisk(1000, cloudProps)
 			Expect(err).To(MatchError("create-pvc-welp"))
 			Expect(fakeClient.MatchingActions("create", "persistentvolumeclaims")).To(HaveLen(1))
 		})

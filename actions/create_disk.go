@@ -1,26 +1,38 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
+	"time"
+
+	"code.cloudfoundry.org/clock"
 
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
+	"k8s.io/client-go/1.4/pkg/api"
 	"k8s.io/client-go/1.4/pkg/api/resource"
 	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/1.4/pkg/labels"
+	"k8s.io/client-go/1.4/pkg/watch"
 )
 
 type CreateDiskCloudProperties struct {
 	Context string `json:"context"`
 }
 
-// DiskCreator simply creates a PersistentVolumeClaim. The attach process will
+// DiskCreator simply creates a PersistentVolumeClaim.
+// True? --> The attach process will
 // turn the claim into a volume mounted into the pod.
 type DiskCreator struct {
 	ClientProvider    kubecluster.ClientProvider
+	Clock             clock.Clock
+	DiskReadyTimeout  time.Duration
 	GUIDGeneratorFunc func() (string, error)
 }
 
-func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties, vmcid cpi.VMCID) (cpi.DiskCID, error) {
+func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties) (cpi.DiskCID, error) {
 	diskID, err := d.GUIDGeneratorFunc()
 	if err != nil {
 		return "", err
@@ -58,7 +70,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 	// 	return "", err
 	// }
 
-	_, err = client.PersistentVolumeClaims().Create(&v1.PersistentVolumeClaim{
+	pvc, err := client.PersistentVolumeClaims().Create(&v1.PersistentVolumeClaim{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "disk-" + diskID,
 			Namespace: client.Namespace(),
@@ -85,5 +97,67 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		return "", err
 	}
 
+	ready, err := d.waitForDisk(client.PersistentVolumeClaims(), diskID, pvc.ResourceVersion)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !ready {
+		return "", errors.New("Disk creation failed with a timeout")
+	}
 	return NewDiskCID(client.Context(), diskID), nil
+}
+
+func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface, diskID string, resourceVersion string) (bool, error) {
+	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/disk-id=" + diskID)
+	if err != nil {
+		return false, err
+	}
+
+	listOptions := api.ListOptions{
+		LabelSelector:   diskSelector,
+		ResourceVersion: resourceVersion,
+		Watch:           true,
+	}
+
+	timer := d.Clock.NewTimer(d.DiskReadyTimeout)
+	defer timer.Stop()
+
+	pvcWatch, err := pvcService.Watch(listOptions)
+	if err != nil {
+		return false, err
+	}
+	defer pvcWatch.Stop()
+
+	for {
+		select {
+		case event := <-pvcWatch.ResultChan():
+			switch event.Type {
+			case watch.Modified:
+				pvc, ok := event.Object.(*v1.PersistentVolumeClaim)
+				if !ok {
+					return false, fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+				}
+
+				if isDiskReady(pvc) {
+					return true, nil
+				}
+
+			default:
+				return false, fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
+			}
+
+		case <-timer.C():
+			return false, nil
+		}
+	}
+}
+
+func isDiskReady(pvc *v1.PersistentVolumeClaim) bool {
+	if pvc.Status.Phase != v1.ClaimBound {
+		return false
+	}
+
+	return true
 }

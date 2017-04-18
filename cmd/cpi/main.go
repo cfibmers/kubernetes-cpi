@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	DefaultDiskReadyTimeout  = 600 * time.Second
 	DefaultPostRecreateDelay = 15 * time.Second
 	DefaultPodReadyTimeout   = 300 * time.Second
 )
@@ -103,6 +104,8 @@ func main() {
 	case "create_disk":
 		diskCreator := actions.DiskCreator{
 			ClientProvider:    provider,
+			Clock:             clock.NewClock(),
+			DiskReadyTimeout:  DefaultDiskReadyTimeout,
 			GUIDGeneratorFunc: actions.CreateGUID,
 		}
 		result, err = cpi.Dispatch(&req, diskCreator.CreateDisk)
