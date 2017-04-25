@@ -151,7 +151,7 @@ var _ = Describe("CreateDisk", func() {
 					"bosh.cloudfoundry.org/disk-id": "disk-guid",
 				},
 				Annotations: map[string]string{
-					"volume.beta.kubernetes.io/storage-class":       "ibmc-file-bronze",
+					"volume.beta.kubernetes.io/storage-class":       "ibmc-file-silver",
 					"volume.beta.kubernetes.io/storage-provisioner": "ibm.io/ibmc-file",
 				},
 			},

@@ -75,7 +75,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 			Name:      "disk-" + diskID,
 			Namespace: client.Namespace(),
 			Annotations: map[string]string{
-				"volume.beta.kubernetes.io/storage-class":       "ibmc-file-bronze",
+				"volume.beta.kubernetes.io/storage-class":       "ibmc-file-silver",
 				"volume.beta.kubernetes.io/storage-provisioner": "ibm.io/ibmc-file",
 			},
 			Labels: map[string]string{
