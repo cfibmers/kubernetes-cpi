@@ -3,12 +3,12 @@ package kubecluster_test
 import (
 	"net/http"
 
+	"github.com/ScarletTanager/kubernetes-cpi/config"
+	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/ScarletTanager/kubernetes-cpi/config"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 var _ = Describe("Provider", func() {
@@ -136,7 +136,7 @@ var _ = Describe("Provider", func() {
 	Context("when an invalid context name is specified", func() {
 		It("raises an error", func() {
 			_, err := provider.New("does-not-exist")
-			Expect(err).To(MatchError("invalid configuration: no configuration has been provided"))
+			Expect(err.Error()).To(Equal("invalid configuration: [context was not found for specified context: does-not-exist, cluster has no server defined]"))
 
 			Expect(server.ReceivedRequests()).To(HaveLen(0))
 		})

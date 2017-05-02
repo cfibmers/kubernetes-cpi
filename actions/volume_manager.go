@@ -12,11 +12,10 @@ import (
 	"github.com/ScarletTanager/kubernetes-cpi/agent"
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
-	"k8s.io/client-go/1.4/pkg/api"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/labels"
-	"k8s.io/client-go/1.4/pkg/watch"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/labels"
+	"k8s.io/client-go/pkg/watch"
 )
 
 type VolumeManager struct {
@@ -104,7 +103,7 @@ func (v *VolumeManager) recreatePod(client kubecluster.Client, op Operation, age
 	}
 	pod.Status = v1.PodStatus{}
 
-	err = podService.Delete("agent-"+agentID, &api.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+	err = podService.Delete("agent-"+agentID, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 	if err != nil {
 		return err
 	}
@@ -225,8 +224,8 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 		return false, err
 	}
 
-	listOptions := api.ListOptions{
-		LabelSelector:   agentSelector,
+	listOptions := v1.ListOptions{
+		LabelSelector:   agentSelector.String(),
 		ResourceVersion: resourceVersion,
 		Watch:           true,
 	}

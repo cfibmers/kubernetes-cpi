@@ -10,12 +10,11 @@ import (
 
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
-	"k8s.io/client-go/1.4/pkg/api"
-	"k8s.io/client-go/1.4/pkg/api/resource"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/labels"
-	"k8s.io/client-go/1.4/pkg/watch"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/pkg/api/resource"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/labels"
+	"k8s.io/client-go/pkg/watch"
 )
 
 type CreateDiskCloudProperties struct {
@@ -115,8 +114,8 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 		return false, err
 	}
 
-	listOptions := api.ListOptions{
-		LabelSelector:   diskSelector,
+	listOptions := v1.ListOptions{
+		LabelSelector:   diskSelector.String(),
 		ResourceVersion: resourceVersion,
 		Watch:           true,
 	}

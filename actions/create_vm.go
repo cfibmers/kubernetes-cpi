@@ -10,11 +10,11 @@ import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 
-	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
-	kubeerrors "k8s.io/client-go/1.4/pkg/api/errors"
-	"k8s.io/client-go/1.4/pkg/api/resource"
-	"k8s.io/client-go/1.4/pkg/api/unversioned"
-	"k8s.io/client-go/1.4/pkg/api/v1"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kubeerrors "k8s.io/client-go/pkg/api/errors"
+	"k8s.io/client-go/pkg/api/resource"
+	"k8s.io/client-go/pkg/api/unversioned"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type VMCreator struct {
@@ -154,7 +154,7 @@ func (v *VMCreator) InstanceSettings(agentID string, networks cpi.Networks, env 
 	return settings, nil
 }
 
-func createNamespace(coreClient core.CoreInterface, namespace string) error {
+func createNamespace(coreClient core.CoreV1Interface, namespace string) error {
 	_, err := coreClient.Namespaces().Get(namespace)
 	if err == nil {
 		return nil

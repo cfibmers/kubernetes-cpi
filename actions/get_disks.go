@@ -5,9 +5,9 @@ import (
 
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
-	"k8s.io/client-go/1.4/pkg/api/errors"
-	"k8s.io/client-go/1.4/pkg/api/v1"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/pkg/api/errors"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type DiskGetter struct {

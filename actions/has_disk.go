@@ -3,8 +3,8 @@ package actions
 import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	"k8s.io/client-go/1.4/pkg/api"
-	"k8s.io/client-go/1.4/pkg/labels"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/labels"
 )
 
 type DiskFinder struct {
@@ -23,7 +23,7 @@ func (d *DiskFinder) HasDisk(diskCID cpi.DiskCID) (bool, error) {
 		return false, err
 	}
 
-	listOptions := api.ListOptions{LabelSelector: diskSelector}
+	listOptions := v1.ListOptions{LabelSelector: diskSelector.String()}
 	pvcList, err := client.PersistentVolumeClaims().List(listOptions)
 	if err != nil {
 		return false, err

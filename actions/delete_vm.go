@@ -4,11 +4,11 @@ import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
 
-	core "k8s.io/client-go/1.4/kubernetes/typed/core/v1"
-	"k8s.io/client-go/1.4/pkg/api"
-	kubeerrors "k8s.io/client-go/1.4/pkg/api/errors"
-	"k8s.io/client-go/1.4/pkg/api/unversioned"
-	"k8s.io/client-go/1.4/pkg/labels"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kubeerrors "k8s.io/client-go/pkg/api/errors"
+	"k8s.io/client-go/pkg/api/unversioned"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/labels"
 )
 
 type VMDeleter struct {
@@ -42,7 +42,7 @@ func (v *VMDeleter) Delete(vmcid cpi.VMCID) error {
 }
 
 func deleteConfigMap(configMapService core.ConfigMapInterface, agentID string) error {
-	err := configMapService.Delete("agent-"+agentID, &api.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+	err := configMapService.Delete("agent-"+agentID, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 	if statusError, ok := err.(*kubeerrors.StatusError); ok {
 		if statusError.Status().Reason == unversioned.StatusReasonNotFound {
 			return nil
@@ -57,13 +57,13 @@ func deleteServices(serviceClient core.ServiceInterface, agentID string) error {
 		return err
 	}
 
-	serviceList, err := serviceClient.List(api.ListOptions{LabelSelector: agentSelector})
+	serviceList, err := serviceClient.List(v1.ListOptions{LabelSelector: agentSelector.String()})
 	if err != nil {
 		return err
 	}
 
 	for _, service := range serviceList.Items {
-		err := serviceClient.Delete(service.Name, &api.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+		err := serviceClient.Delete(service.Name, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func deleteServices(serviceClient core.ServiceInterface, agentID string) error {
 }
 
 func deletePod(podClient core.PodInterface, agentID string) error {
-	err := podClient.Delete("agent-"+agentID, &api.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+	err := podClient.Delete("agent-"+agentID, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 	if statusError, ok := err.(*kubeerrors.StatusError); ok {
 		if statusError.Status().Reason == unversioned.StatusReasonNotFound {
 			return nil

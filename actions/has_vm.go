@@ -3,9 +3,8 @@ package actions
 import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	"k8s.io/client-go/1.4/pkg/api"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/labels"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/labels"
 )
 
 type VMFinder struct {
@@ -29,7 +28,7 @@ func (f *VMFinder) FindVM(vmcid cpi.VMCID) (string, *v1.Pod, error) {
 		return "", nil, err
 	}
 
-	listOptions := api.ListOptions{LabelSelector: agentSelector}
+	listOptions := v1.ListOptions{LabelSelector: agentSelector.String()}
 	podList, err := client.Pods().List(listOptions)
 	if err != nil {
 		return "", nil, err

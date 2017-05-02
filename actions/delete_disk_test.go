@@ -3,10 +3,10 @@ package actions_test
 import (
 	"errors"
 
-	"k8s.io/client-go/1.4/pkg/api/resource"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/runtime"
-	"k8s.io/client-go/1.4/testing"
+	"k8s.io/client-go/pkg/api/resource"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/client-go/testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 
-	kubeerrors "k8s.io/client-go/1.4/pkg/api/errors"
-	"k8s.io/client-go/1.4/pkg/api/resource"
-	"k8s.io/client-go/1.4/pkg/api/unversioned"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/runtime"
-	"k8s.io/client-go/1.4/testing"
+	kubeerrors "k8s.io/client-go/pkg/api/errors"
+	"k8s.io/client-go/pkg/api/resource"
+	"k8s.io/client-go/pkg/api/unversioned"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/client-go/testing"
 
 	"github.com/ScarletTanager/kubernetes-cpi/actions"
 	"github.com/ScarletTanager/kubernetes-cpi/agent"

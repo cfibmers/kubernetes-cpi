@@ -6,8 +6,8 @@ import (
 	"github.com/ScarletTanager/kubernetes-cpi/actions"
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/testing"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

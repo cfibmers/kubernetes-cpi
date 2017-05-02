@@ -3,7 +3,7 @@ package actions
 import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
-	"k8s.io/client-go/1.4/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type DiskDeleter struct {
@@ -17,5 +17,5 @@ func (d *DiskDeleter) DeleteDisk(diskCID cpi.DiskCID) error {
 		return err
 	}
 
-	return client.PersistentVolumeClaims().Delete("disk-"+diskID, &api.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+	return client.PersistentVolumeClaims().Delete("disk-"+diskID, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 }

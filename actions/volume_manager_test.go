@@ -15,10 +15,10 @@ import (
 	"github.com/ScarletTanager/kubernetes-cpi/cpi"
 	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
 
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/runtime"
-	"k8s.io/client-go/1.4/pkg/watch"
-	"k8s.io/client-go/1.4/testing"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/client-go/pkg/watch"
+	"k8s.io/client-go/testing"
 )
 
 var _ = Describe("VolumeManager", func() {
@@ -110,7 +110,7 @@ var _ = Describe("VolumeManager", func() {
 			fakeClient.ContextReturns("context-name")
 			fakeClient.NamespaceReturns("bosh-namespace")
 
-			fakeWatch = watch.NewFakeWithChanSize(1)
+			fakeWatch = watch.NewFakeWithChanSize(1, false)
 			fakeWatch.Modify(&v1.Pod{
 				ObjectMeta: agentMeta,
 				Spec:       initialPodSpec,
@@ -550,7 +550,7 @@ var _ = Describe("VolumeManager", func() {
 			fakeClient.ContextReturns("context-name")
 			fakeClient.NamespaceReturns("bosh-namespace")
 
-			fakeWatch = watch.NewFakeWithChanSize(1)
+			fakeWatch = watch.NewFakeWithChanSize(1, false)
 			fakeWatch.Modify(&v1.Pod{
 				ObjectMeta: agentMeta,
 				Spec:       initialPodSpec,
