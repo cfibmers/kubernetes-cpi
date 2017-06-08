@@ -11,11 +11,11 @@ import (
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/testing"
 
-	"github.com/ScarletTanager/kubernetes-cpi/actions"
-	"github.com/ScarletTanager/kubernetes-cpi/agent"
-	"github.com/ScarletTanager/kubernetes-cpi/config"
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
+	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
+	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

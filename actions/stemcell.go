@@ -1,6 +1,6 @@
 package actions
 
-import "github.com/ScarletTanager/kubernetes-cpi/cpi"
+import "github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 
 type StemcellCloudProperties struct {
 	Image string `json:"image"`

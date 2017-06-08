@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 )
 
 var _ = Describe("Dispatch", func() {

@@ -3,8 +3,8 @@ package kubecluster_test
 import (
 	"net/http"
 
-	"github.com/ScarletTanager/kubernetes-cpi/config"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"

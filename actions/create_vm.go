@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ScarletTanager/kubernetes-cpi/agent"
-	"github.com/ScarletTanager/kubernetes-cpi/config"
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"

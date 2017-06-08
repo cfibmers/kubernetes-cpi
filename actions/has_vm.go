@@ -1,8 +1,8 @@
 package actions
 
 import (
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/labels"
 )

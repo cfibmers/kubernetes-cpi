@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/ScarletTanager/kubernetes-cpi/config"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

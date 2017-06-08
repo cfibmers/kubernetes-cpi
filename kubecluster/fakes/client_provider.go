@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 )
 
 type ClientProvider struct {

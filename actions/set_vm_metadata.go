@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/pkg/util/strategicpatch"
 	"k8s.io/client-go/pkg/util/validation"

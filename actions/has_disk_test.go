@@ -3,9 +3,9 @@ package actions_test
 import (
 	"errors"
 
-	"github.com/ScarletTanager/kubernetes-cpi/actions"
-	"github.com/ScarletTanager/kubernetes-cpi/cpi"
-	"github.com/ScarletTanager/kubernetes-cpi/kubecluster/fakes"
+	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
+	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/testing"
 
