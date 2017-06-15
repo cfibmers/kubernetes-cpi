@@ -6,9 +6,9 @@ import (
 	"k8s.io/client-go/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 )
 
 var _ = Describe("Kubernetes Config", func() {
