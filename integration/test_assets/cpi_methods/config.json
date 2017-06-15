@@ -1,0 +1,26 @@
+{
+  "clusters": {
+    "{{ .ClusterName }}": {
+      "certificate_authority_data": {{ .Cert }},
+      "server": "{{ .APIServer }}"
+    }
+  },
+  "contexts": {
+    "{{ .ClusterName }}": {
+      "cluster": "{{ .ClusterName }}",
+      "namespace": "integration",
+      "user": "admin"
+    }
+  },
+  "current_context": "{{ .ClusterName}}",
+  "users": {
+    "admin": {
+      "auth_provider": "oidc",
+      "client_id": "bx",
+      "client_secret": "bx",
+      "idp_issuer_url": "https://iam.ng.bluemix.net/kubernetes",
+      "refresh_token":"{{ .RefreshToken }}",
+      "token":"{{ .Token }}"
+    }
+  }
+}

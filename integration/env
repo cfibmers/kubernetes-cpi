@@ -1,0 +1,7 @@
+export BX_API=
+export BX_USERNAME=
+export BX_PASSWORD=
+export BX_ACCOUNTID=
+export CLUSTER_NAME=
+export SL_USERNAME=
+export SL_API_KEY=

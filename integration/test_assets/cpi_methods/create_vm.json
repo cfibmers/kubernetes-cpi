@@ -1,0 +1,97 @@
+{
+  "method": "create_vm",
+  "arguments": [
+    "0fd9ff80-d39c-47da-6827-e1825bc8a999",
+    "sykesm/kubernetes-stemcell:3312",
+    {
+      "context": "{{ .Context}}",
+      "resources": {
+        "limits": {
+          "memory": "1Gi"
+        },
+        "requests": {
+          "memory": "64Mi"
+        }
+      },
+      "services": [
+        {
+          "name": "agent",
+          "ports": [
+            {
+              "name": "agent",
+              "node_port": 32267,
+              "port": 6868,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "NodePort"
+        },
+        {
+          "name": "director",
+          "ports": [
+            {
+              "name": "director",
+              "node_port": 32067,
+              "port": 25555,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "NodePort"
+        },
+        {
+          "name": "blobstore",
+          "ports": [
+            {
+              "port": 25250,
+              "protocol": "TCP"
+            }
+          ]
+        },
+        {
+          "cluster_ip": "10.10.10.11",
+          "name": "bosh-dns",
+          "ports": [
+            {
+              "name": "dns-tcp",
+              "port": 53,
+              "protocol": "TCP"
+            },
+            {
+              "name": "dns-udp",
+              "port": 53,
+              "protocol": "UDP"
+            }
+          ]
+        },
+        {
+          "name": "nats",
+          "ports": [
+            {
+              "port": 4222,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "default": {
+        "cloud_properties": {},
+        "default": [
+          "dns",
+          "gateway"
+        ],
+        "dns": [
+          "10.10.10.11",
+          "10.10.10.10"
+        ],
+        "type": "dynamic"
+      }
+    },
+    [],
+    {}
+  ],
+  "context": {
+    "director_uuid": "f198b43d-45ee-4a94-6829-14cef36c7821"
+  }
+}
