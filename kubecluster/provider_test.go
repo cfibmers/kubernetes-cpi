@@ -3,11 +3,11 @@ package kubecluster_test
 import (
 	"net/http"
 
-	"github.ibm.com/Bluemix/kubernetes-cpi/config"
-	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.ibm.com/Bluemix/kubernetes-cpi/config"
+	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/pkg/api/v1"
 )
 
