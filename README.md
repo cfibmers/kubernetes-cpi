@@ -52,18 +52,21 @@ SWEET SUITE SUCCESS
 
 #### - Integration Tests
 
- 1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here].(https://github.ibm.com/Bluemix/kubernetes-cpi/issues/10)
- 2. Provide API endpoint, credentials and cluster name etc. Edit `integration/env` and fill in all of them.
- 
-``` 
+ 1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here].(https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install)
+ 2. Provide API endpoint, credentials and cluster name etc. Fill in all the fields in `integration/env`  and run `source integration/env`.
+
+ > **Note:** Please set  $CLUSTER_NAME to the name of an existed and fully functional cluster, as integration tests will use the cluster directly to create pods etc.
+
+```
 $ cat integration/env
- export BX_API=
- export BX_USERNAME=
- export BX_PASSWORD=
- export BX_ACCOUNTID=
- export CLUSTER_NAME=
- export SL_USERNAME=
- export SL_API_KEY=
+export BX_API="{bluemix-api}"
+export BX_USERNAME="{bluemix-user-name}"
+export BX_PASSWORD="{bluemix-password}"
+export BX_ACCOUNTID="{bluemix-account}"
+export CLUSTER_NAME="{existed-cluster}"
+export SL_USERNAME="{softlayer-username}"
+export SL_API_KEY="{softlayer-api-key}"
+
 $ source integration/env
 ```
 3. Run integration tests with: `$ bin/test-integration` . The output of  `$ bin/test-unit` should be similar to:

@@ -1,7 +1,7 @@
-export BX_API=
-export BX_USERNAME=
-export BX_PASSWORD=
-export BX_ACCOUNTID=
-export CLUSTER_NAME=
-export SL_USERNAME=
-export SL_API_KEY=
+export BX_API="{bluemix-api}"
+export BX_USERNAME="{bluemix-user-name}"
+export BX_PASSWORD="{password}"
+export BX_ACCOUNTID="{account}"
+export CLUSTER_NAME="{existed-cluster}"
+export SL_USERNAME="{softlayer-username}"
+export SL_API_KEY="{softlayer-api-key}"

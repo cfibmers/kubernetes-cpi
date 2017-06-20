@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-func TestCreateVm(t *testing.T) {
+func TestCreateVM(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CreateVm Suite")
+	RunSpecs(t, "CreateVM Suite")
 }
 
 var _ = BeforeSuite(func() {
-	_ = testHelper.ConnectCluster()
-
+	err := testHelper.ConnectCluster()
+	Expect(err).NotTo(HaveOccurred(), "Connecting cluster ...")
 })

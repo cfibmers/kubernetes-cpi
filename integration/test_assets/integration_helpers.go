@@ -2,7 +2,6 @@ package test_assets
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
 )
 
 type CpiTemplate struct {
@@ -82,6 +83,7 @@ func ConnectCluster() error {
 	if bxPassword == "" {
 		return errors.New("BX_PASSWORD must be set")
 	}
+	fmt.Printf("=====================debug%s=====================", bxPassword)
 
 	bxAccountID := os.Getenv("BX_ACCOUNTID")
 	if bxAccountID == "" {
@@ -105,45 +107,50 @@ func ConnectCluster() error {
 
 	//log in to the Bluemix CLI
 	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
+	fmt.Printf("=====================debugcmd%s=====================", loginBX)
 	err := loginBX.Run()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Logging in Bluemix CLI")
 	}
 
 	//Initialize the IBM Bluemix Container Service plug-in
 	initCS := exec.Command("bx", "cs", "init")
 	err = initCS.Run()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Initializing the IBM Bluemix Container Service plug-in")
 	}
 
 	//Set Softlayer Credentials
 	setSLCredentials := exec.Command("bx", "cs", "credentials-set", "--infrastructure-username", slUsername, "--infrastructure-api-key", slAPIKey)
 	err = setSLCredentials.Run()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Setting Softlayer Credentials")
 	}
 
 	//Verify provided cluster
-	listCluster := exec.Command("bx", "cs", "clusters")
-	stdout, err := listCluster.Output()
+	listClusters := exec.Command("bx", "cs", "clusters")
+	listClustersOutput, err := listClusters.Output()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Listing Clusters")
+	}
+
+	if !strings.Contains(string(listClustersOutput), clusterName) {
+		return errors.New(fmt.Sprintf("Cannot find cluster %s", clusterName))
 	}
 
 	//Set your terminal context to your cluster
 	setContext := exec.Command("bx", "cs", "cluster-config", clusterName)
-	stdout, err = setContext.Output()
+	setContextOutput, err := setContext.Output()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Setting your terminal context to your cluster")
 	}
 
 	//Export environment variables to start using Kubernetes.
-	kuberConfig := strings.SplitAfter(string(stdout), "KUBECONFIG=")[1]
+	kuberConfig := strings.SplitAfter(string(setContextOutput), "KUBECONFIG=")[1]
 	env := strings.Replace(kuberConfig, "\n", "", -1)
 	err = os.Setenv("KUBECONFIG", env)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Exporting  environment variables to start using Kubernetes")
 	}
 
 	return nil
