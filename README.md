@@ -52,10 +52,16 @@ SWEET SUITE SUCCESS
 
 #### - Integration Tests
 
- 1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here].(https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install)
+ 1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here](https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install).
  2. Provide API endpoint, credentials and cluster name etc. Fill in all the fields in `integration/env`  and run `source integration/env`.
 
- > **Note:** Please set  $CLUSTER_NAME to the name of an existed and fully functional cluster, as integration tests will use the cluster directly to create pods etc.
+ > **Note:**
+
+ > - Please set  $CLUSTER_NAME to the name of an existed and fully functional cluster, as integration tests will use the cluster directly to create pods etc.
+ > - Please keep the double quote in case there are some special characters of the values provided.
+ > - Here is an `example integration/env file` for your reference.
+
+
 
 ```
 $ cat integration/env
@@ -66,6 +72,16 @@ export BX_ACCOUNTID="{bluemix-account}"
 export CLUSTER_NAME="{existed-cluster}"
 export SL_USERNAME="{softlayer-username}"
 export SL_API_KEY="{softlayer-api-key}"
+
+# example integration/env file
+$ cat integration/env
+export BX_API="api.ng.bluemix.net"
+export BX_USERNAME="zhanggbj"
+export BX_PASSWORD="password"
+export BX_ACCOUNTID="12345678910027ca24sdd12345678910"
+export CLUSTER_NAME="cluster_integration"
+export SL_USERNAME="zhanggbj"
+export SL_API_KEY="12345678910570d12e2149b3fd12345678910499b34351a8db2512345678910"
 
 $ source integration/env
 ```

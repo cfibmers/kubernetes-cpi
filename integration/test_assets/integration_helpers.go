@@ -83,7 +83,6 @@ func ConnectCluster() error {
 	if bxPassword == "" {
 		return errors.New("BX_PASSWORD must be set")
 	}
-	fmt.Printf("=====================debug%s=====================", bxPassword)
 
 	bxAccountID := os.Getenv("BX_ACCOUNTID")
 	if bxAccountID == "" {
@@ -107,7 +106,6 @@ func ConnectCluster() error {
 
 	//log in to the Bluemix CLI
 	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
-	fmt.Printf("=====================debugcmd%s=====================", loginBX)
 	err := loginBX.Run()
 	if err != nil {
 		return errors.Wrap(err, "Logging in Bluemix CLI")
