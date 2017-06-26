@@ -15,11 +15,11 @@
       },
       "services": [
         {
-          "name": "agent",
+          "name": "agent1",
           "ports": [
             {
-              "name": "agent",
-              "node_port": 32267,
+              "name": "agent1",
+              "node_port": 32323,
               "port": 6868,
               "protocol": "TCP"
             }
@@ -27,11 +27,11 @@
           "type": "NodePort"
         },
         {
-          "name": "director",
+          "name": "director1",
           "ports": [
             {
-              "name": "director",
-              "node_port": 32067,
+              "name": "director1",
+              "node_port": 32324,
               "port": 25555,
               "protocol": "TCP"
             }
@@ -39,35 +39,35 @@
           "type": "NodePort"
         },
         {
-          "name": "blobstore",
+          "name": "blobstore1",
           "ports": [
             {
-              "port": 25250,
+              "port": 25251,
               "protocol": "TCP"
             }
           ]
         },
         {
-          "cluster_ip": "10.10.10.11",
-          "name": "bosh-dns",
+          "cluster_ip": "10.10.10.50",
+          "name": "bosh-dns1",
           "ports": [
             {
-              "name": "dns-tcp",
+              "name": "dns-tcp1",
               "port": 53,
               "protocol": "TCP"
             },
             {
-              "name": "dns-udp",
+              "name": "dns-udp1",
               "port": 53,
               "protocol": "UDP"
             }
           ]
         },
         {
-          "name": "nats",
+          "name": "nats1",
           "ports": [
             {
-              "port": 4222,
+              "port": 4223,
               "protocol": "TCP"
             }
           ]
@@ -82,8 +82,8 @@
           "gateway"
         ],
         "dns": [
-          "10.10.10.11",
-          "10.10.10.10"
+          "10.10.10.10",
+          "10.10.10.50"
         ],
         "type": "dynamic"
       }

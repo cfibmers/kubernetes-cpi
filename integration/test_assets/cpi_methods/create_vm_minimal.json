@@ -1,0 +1,36 @@
+{
+  "method": "create_vm",
+  "arguments": [
+    "0fd9ff80-d39c-47da-6827-e1825bc8a999",
+    "sykesm/kubernetes-stemcell:3312",
+    {
+      "context": "{{ .Context}}",
+      "resources": {
+        "limits": {
+          "memory": "1Gi"
+        },
+        "requests": {
+          "memory": "64Mi"
+        }
+      },
+    },
+    {
+      "default": {
+        "cloud_properties": {},
+        "default": [
+          "dns",
+          "gateway"
+        ],
+        "dns": [
+          "10.10.10.10"
+        ],
+        "type": "dynamic"
+      }
+    },
+    [],
+    {}
+  ],
+  "context": {
+    "director_uuid": "f198b43d-45ee-4a94-6829-14cef36c7821"
+  }
+}

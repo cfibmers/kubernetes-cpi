@@ -2,8 +2,8 @@ package test_assets
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,7 +12,14 @@ import (
 	"strings"
 	"text/template"
 
+	"k8s.io/client-go/pkg/api/v1"
+
+	"gopkg.in/yaml.v2"
+
 	"github.com/pkg/errors"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type CpiTemplate struct {
@@ -207,7 +214,8 @@ func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacem
 	return buf.String(), nil
 }
 
-func CreateTmpConfigPath(rootTemplatePath string, configPath string, kubeConfig string) (string, error) {
+// CreateTmpConfigFile Creates a temporary config file, writes the config to it, and returns the path
+func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig string) (string, error) {
 	currentKubeConfig := KubeConfig{}
 	configBytes, err := ioutil.ReadFile(kubeConfig)
 	if err != nil {
@@ -276,4 +284,60 @@ func CreateTmpConfigPath(rootTemplatePath string, configPath string, kubeConfig 
 	}
 
 	return tempFile.Name(), nil
+}
+
+func DeleteNamespace(namespace string) {
+	deleteNs := exec.Command("kubectl", "delete", "ns", namespace)
+	err := deleteNs.Run()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func PodCount(namespace string) (int, error) {
+	var pods v1.PodList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "po", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pods); err != nil {
+		return 0, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return 0, errors.New("Failure in Wait() when executing external command")
+	}
+
+	// fmt.Fprintln(os.Stderr, "PODS FOUND")
+	// for i := 0; i < len(pods.Items); i++ {
+	// 	fmt.Fprintf(os.Stderr, "Pod: %s\tNamespace: %s\n", pods.Items[i].ObjectMeta.Name, pods.Items[i].ObjectMeta.Namespace)
+	// }
+	return len(pods.Items), nil
+}
+
+func ServiceCount(namespace string) (int, error) {
+	var services v1.ServiceList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "svc", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&services); err != nil {
+		return 0, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return 0, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return len(services.Items), nil
 }
