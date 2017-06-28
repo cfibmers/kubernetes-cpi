@@ -292,6 +292,12 @@ func DeleteNamespace(namespace string) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func CreateNamespace(namespace string) {
+	createNs := exec.Command("kubectl", "create", "ns", namespace)
+	err := createNs.Run()
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func PodCount(namespace string) (int, error) {
 	var pods v1.PodList
 
@@ -340,4 +346,27 @@ func ServiceCount(namespace string) (int, error) {
 	}
 
 	return len(services.Items), nil
+}
+
+func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
+	var pvcs v1.PersistentVolumeClaimList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "pvc", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return v1.PersistentVolumeClaimList{}, err
+	}
+	if err := cmd.Start(); err != nil {
+		return v1.PersistentVolumeClaimList{}, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pvcs); err != nil {
+		return v1.PersistentVolumeClaimList{}, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return v1.PersistentVolumeClaimList{}, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return pvcs, nil
 }

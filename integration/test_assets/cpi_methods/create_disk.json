@@ -1,0 +1,13 @@
+{
+  "method": "create_disk",
+  "arguments": [
+    20,
+    {
+      "context": "{{ .Context}}"
+    },
+    ""
+  ],
+  "context": {
+    "director_uuid": "f198b43d-45ee-4a94-6829-14cef36c7821"
+  }
+}
