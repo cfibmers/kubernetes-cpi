@@ -1,4 +1,4 @@
-package create_vm_test
+package vm_test
 
 import (
 	"testing"
@@ -8,9 +8,9 @@ import (
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 )
 
-func TestCreateVM(t *testing.T) {
+func TestVM(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CreateVM Suite")
+	RunSpecs(t, "VM Suite")
 }
 
 var _ = BeforeSuite(func() {

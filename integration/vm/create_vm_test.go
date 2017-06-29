@@ -1,4 +1,4 @@
-package create_vm_test
+package vm_test
 
 import (
 	"encoding/json"
