@@ -256,6 +256,13 @@ var _ = Describe("CreateVM", func() {
 							{Port: 25250, Protocol: "TCP"},
 						},
 					},
+					{
+						Name: "bosh-dns",
+						Type: "LoadBalancer",
+						Ports: []actions.Port{
+							{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
+						},
+					},
 				}
 			})
 
@@ -264,7 +271,7 @@ var _ = Describe("CreateVM", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				matches := fakeClient.MatchingActions("create", "services")
-				Expect(matches).To(HaveLen(2))
+				Expect(matches).To(HaveLen(3))
 
 				service := matches[0].(testing.CreateAction).GetObject().(*v1.Service)
 				Expect(service.Name).To(Equal("director"))
@@ -284,6 +291,15 @@ var _ = Describe("CreateVM", func() {
 				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
 				Expect(service.Spec.Ports).To(ConsistOf(
 					v1.ServicePort{Protocol: "TCP", Port: 25250},
+				))
+
+				service = matches[2].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("bosh-dns"))
+				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
 				))
 			})
 

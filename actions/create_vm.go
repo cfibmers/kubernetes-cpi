@@ -197,9 +197,14 @@ func createConfigMap(configMapService core.ConfigMapInterface, ns, agentID strin
 
 func createServices(serviceClient core.ServiceInterface, ns, agentID string, services []Service) error {
 	for _, svc := range services {
-		serviceType := v1.ServiceTypeClusterIP
-		if svc.Type == "NodePort" {
+		var serviceType v1.ServiceType
+		switch svc.Type {
+		default:
+			serviceType = v1.ServiceTypeClusterIP
+		case "NodePort":
 			serviceType = v1.ServiceTypeNodePort
+		case "LoadBalancer":
+			serviceType = v1.ServiceTypeLoadBalancer
 		}
 
 		var ports []v1.ServicePort

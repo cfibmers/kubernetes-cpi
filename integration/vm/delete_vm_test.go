@@ -1,11 +1,11 @@
 package vm_test
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
-	"encoding/json"
 	"path/filepath"
-	
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
@@ -152,6 +152,3 @@ var _ = Describe("Integration test for vm", func() {
 		})
 	})
 })
-
-
-
