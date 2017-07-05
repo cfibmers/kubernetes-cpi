@@ -72,9 +72,6 @@ func main() {
 
 	var result *cpi.Response
 	switch req.Method {
-	//Info
-	case "info":
-		result, err = cpi.Dispatch(&req, actions.Info)
 
 	// Stemcell Management
 	case "create_stemcell":
