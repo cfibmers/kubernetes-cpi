@@ -78,7 +78,8 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		It("Returns a valid result", func() {
-			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			var outputBytes []byte
+			outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = json.Unmarshal(outputBytes, &resultOutput)
@@ -92,7 +93,7 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		It("Creates the VM as a k8s pod", func() {
-			_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			_, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(func() int {
