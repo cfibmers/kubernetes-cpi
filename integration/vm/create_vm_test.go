@@ -66,7 +66,7 @@ var _ = Describe("Creating a VM", func() {
 			Eventually(func() int {
 				pc, _ := testHelper.PodCount("integration")
 				return pc
-			}, "10s").Should(Equal(0))
+			}, "20s").Should(Equal(0))
 
 			deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
 			err = deleteCM.Run()
@@ -74,7 +74,7 @@ var _ = Describe("Creating a VM", func() {
 			Eventually(func() int {
 				sc, _ := testHelper.ServiceCount("integration")
 				return sc
-			}, "10s").Should(Equal(0))
+			}, "20s").Should(Equal(0))
 		})
 
 		It("Returns a valid result", func() {
@@ -95,9 +95,11 @@ var _ = Describe("Creating a VM", func() {
 			_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
 
-			numberOfPods, err = testHelper.PodCount("integration")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfPods).To(Equal(1))
+			Eventually(func() int {
+				numberOfPods, err = testHelper.PodCount("integration")
+				Expect(err).NotTo(HaveOccurred())
+				return numberOfPods
+			}, "10s").Should(Equal(1))
 		})
 
 		Context("When there are services in the cloud properties", func() {
@@ -116,18 +118,22 @@ var _ = Describe("Creating a VM", func() {
 				_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 				Expect(err).ToNot(HaveOccurred())
 
-				numberOfPods, err = testHelper.PodCount("integration")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(numberOfPods).To(Equal(1))
+				Eventually(func() int {
+					numberOfPods, err = testHelper.PodCount("integration")
+					Expect(err).NotTo(HaveOccurred())
+					return numberOfPods
+				}, "10s").Should(Equal(1))
 			})
 
 			It("Creates the services", func() {
 				_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 				Expect(err).ToNot(HaveOccurred())
 
-				numberOfServices, err = testHelper.ServiceCount("integration")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(numberOfServices).To(Equal(5))
+				Eventually(func() int {
+					numberOfServices, err = testHelper.ServiceCount("integration")
+					Expect(err).NotTo(HaveOccurred())
+					return numberOfServices
+				}, "10s").Should(Equal(5))
 			})
 		})
 
