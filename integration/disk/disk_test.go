@@ -1,9 +1,12 @@
 package disk_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"k8s.io/client-go/pkg/api/v1"
 
@@ -23,6 +26,7 @@ var _ = Describe("Disk and Volume Management", func() {
 		kubeConfig                      string
 		rootTemplatePath, tmpConfigPath string
 		replacementMap                  map[string]string
+		output                          map[string]interface{}
 	)
 
 	BeforeEach(func() {
@@ -88,4 +92,56 @@ var _ = Describe("Disk and Volume Management", func() {
 			Expect(capacity.String()).To(Equal("20Gi"))
 		})
 	})
+
+	Context("Deleting a disk", func() {
+		var pvcs v1.PersistentVolumeClaimList
+
+		BeforeEach(func() {
+
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_disk", rootTemplatePath, replacementMap)
+			Expect(err).ToNot(HaveOccurred())
+
+			obytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(obytes, &output)
+			Expect(err).ToNot(HaveOccurred())
+
+			diskID := strings.Split(output["result"].(string), ":")[1]
+			fmt.Println(diskID)
+
+			replacementMap["diskID"] = diskID
+
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("delete_disk", rootTemplatePath, replacementMap)
+			Expect(err).ToNot(HaveOccurred())
+
+		})
+
+		AfterEach(func() {
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "pvc", "--all")
+			err = deleteAll.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Eventually(func() int {
+				p, _ := testHelper.Pvcs("integration")
+				return len(p.Items)
+			}, "10s").Should(Equal(0))
+		})
+
+		It("Deletes the disk", func() {
+			_, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			Eventually(func() int {
+				pvcs, err = testHelper.Pvcs("integration")
+				Expect(err).NotTo(HaveOccurred())
+
+				pvcCount := len(pvcs.Items)
+				return pvcCount
+			}, "60s").Should(Equal(0))
+
+		})
+
+	})
+
 })

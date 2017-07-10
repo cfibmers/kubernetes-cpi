@@ -11,7 +11,7 @@ import (
 
 func TestDisk(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CreateDisk Suite")
+	RunSpecs(t, "Disk Suite")
 }
 
 var _ = BeforeSuite(func() {

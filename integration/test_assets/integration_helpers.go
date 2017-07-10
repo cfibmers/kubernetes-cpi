@@ -18,12 +18,24 @@ import (
 
 	"github.com/pkg/errors"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-type CpiTemplate struct {
+type cpiTemplate interface {
+	setContext(string)
+}
+
+type baseTemplate struct {
 	Context string
+}
+
+func (b baseTemplate) setContext(c string) {
+	b.Context = c
+}
+
+type deleteDiskTemplate struct {
+	baseTemplate
+	DiskID string
 }
 
 type KubeConfigTemplate struct {
@@ -112,7 +124,7 @@ func ConnectCluster() error {
 	}
 
 	//log in to the Bluemix CLI
-	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
+	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID, "--apikey AqBhH-bI1QgfqejbGxZgt7rlkDOG_js1UPICK2VcXXOf")
 	err := loginBX.Run()
 	if err != nil {
 		return errors.Wrap(err, "Logging in Bluemix CLI")
@@ -193,9 +205,18 @@ func RunCpi(rootCpiPath string, configPath string, agentPath string, jsonPayload
 }
 
 func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacementMap map[string]string) (string, error) {
-	cpiTemplate := CpiTemplate{
-		Context: replacementMap["context"],
+	var c cpiTemplate
+
+	switch methodName {
+	case "delete_disk":
+		c = deleteDiskTemplate{
+			DiskID: replacementMap["diskID"],
+		}
+	default:
+		c = baseTemplate{}
 	}
+
+	c.setContext(replacementMap["context"])
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))
 
@@ -206,7 +227,7 @@ func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacem
 	}
 
 	buf := new(bytes.Buffer)
-	err = t.Execute(buf, cpiTemplate)
+	err = t.Execute(buf, c)
 	if err != nil {
 		return "", err
 	}
