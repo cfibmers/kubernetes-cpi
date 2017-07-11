@@ -89,11 +89,11 @@ var _ = Describe("Integration test for vm", func() {
 
 			numberOfPods, err = testHelper.PodCount("integration")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfPods).To(Equal(0))
+			Eventually(numberOfPods, "10s").Should(Equal(0))
 
 			numberOfServices, err = testHelper.ServiceCount("integration")
 			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfServices).To(Equal(0))
+			Eventually(numberOfServices, "10s").Should(Equal(0))
 		})
 
 	})

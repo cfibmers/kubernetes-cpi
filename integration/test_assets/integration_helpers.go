@@ -33,7 +33,7 @@ func (b baseTemplate) setContext(c string) {
 	b.Context = c
 }
 
-type deleteDiskTemplate struct {
+type DiskTemplate struct {
 	baseTemplate
 	DiskID string
 }
@@ -208,8 +208,8 @@ func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacem
 	var c cpiTemplate
 
 	switch methodName {
-	case "delete_disk":
-		c = deleteDiskTemplate{
+	case "delete_disk", "attach_disk":
+		c = DiskTemplate{
 			DiskID: replacementMap["diskID"],
 		}
 	default:
@@ -390,4 +390,27 @@ func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
 	}
 
 	return pvcs, nil
+}
+
+func GetPodByName(podName string, namespace string) (v1.Pod, error) {
+	pod := v1.Pod{}
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "pod", podName, "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return pod, err
+	}
+	if err := cmd.Start(); err != nil {
+		return pod, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pod); err != nil {
+		return pod, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return pod, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return pod, nil
 }

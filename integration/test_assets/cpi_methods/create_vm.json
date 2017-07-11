@@ -48,7 +48,6 @@
           ]
         },
         {
-          "cluster_ip": "10.10.10.50",
           "name": "bosh-dns1",
           "ports": [
             {
