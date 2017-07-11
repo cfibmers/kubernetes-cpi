@@ -108,7 +108,6 @@ var _ = Describe("Disk and Volume Management", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			diskID := strings.Split(output["result"].(string), ":")[1]
-			fmt.Println(diskID)
 
 			replacementMap["diskID"] = diskID
 

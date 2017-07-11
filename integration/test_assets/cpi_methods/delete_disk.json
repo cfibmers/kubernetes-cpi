@@ -1,9 +1,9 @@
 {
   "method": "delete_disk",
   "arguments": [
-    "{{ .Context}}:{{ .DiskID}}"
+    "{{ .Context }}:{{ .DiskID }}"
   ],
   "context": {
-    "director_uuid": "f198b43d-45ee-4a94-6829-14cef36c7821"
+    "director_uuid": "director-id"
   }
 }

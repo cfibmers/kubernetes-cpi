@@ -1,10 +1,10 @@
 {
   "method": "create_vm",
   "arguments": [
-    "0fd9ff80-d39c-47da-6827-e1825bc8a999",
+    "{{ .AgentID }}",
     "sykesm/kubernetes-stemcell:3312",
     {
-      "context": "{{ .Context}}",
+      "context": "{{ .Context }}",
       "resources": {
         "limits": {
           "memory": "1Gi"
@@ -48,7 +48,7 @@
           ]
         },
         {
-          "cluster_ip": "10.10.10.50",
+          "cluster_ip": "",
           "name": "bosh-dns1",
           "ports": [
             {
@@ -92,6 +92,6 @@
     {}
   ],
   "context": {
-    "director_uuid": "f198b43d-45ee-4a94-6829-14cef36c7821"
+    "director_uuid": "director-id"
   }
 }

@@ -24,6 +24,7 @@ import (
 type cpiTemplate struct {
 	Context string
 	DiskID  string
+	AgentID string
 }
 
 type KubeConfigTemplate struct {
@@ -201,12 +202,21 @@ func RunCpi(rootCpiPath string, configPath string, agentPath string, jsonPayload
 }
 
 func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacementMap map[string]string) (string, error) {
+	var (
+		val    string
+		exists bool
+	)
+
 	c := cpiTemplate{
 		Context: replacementMap["context"],
 	}
 
-	if val, exists := replacementMap["diskID"]; exists {
+	if val, exists = replacementMap["diskID"]; exists {
 		c.DiskID = val
+	}
+
+	if val, exists = replacementMap["agentID"]; exists {
+		c.AgentID = val
 	}
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))
@@ -404,4 +414,27 @@ func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
 	}
 
 	return pvcs, nil
+}
+
+func GetPodListByAgentId(namespace string, agentId string) (v1.PodList, error) {
+	var pods v1.PodList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "pods", "-l", fmt.Sprintf("bosh.cloudfoundry.org/agent-id=%s", agentId), "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return v1.PodList{}, err
+	}
+	if err := cmd.Start(); err != nil {
+		return v1.PodList{}, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pods); err != nil {
+		return v1.PodList{}, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return v1.PodList{}, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return pods, nil
 }
