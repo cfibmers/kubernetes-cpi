@@ -369,6 +369,29 @@ func ServiceCount(namespace string) (int, error) {
 	return len(services.Items), nil
 }
 
+func GetServiceByName(namespace string, serviceName string) (v1.Service, error) {
+	var service = v1.Service{}
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "svc", serviceName, "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return service, err
+	}
+	if err := cmd.Start(); err != nil {
+		return service, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&service); err != nil {
+		return service, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return service, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return service, nil
+}
+
 func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
 	var pvcs v1.PersistentVolumeClaimList
 

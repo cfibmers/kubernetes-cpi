@@ -125,7 +125,7 @@ var _ = Describe("Creating a VM", func() {
 				}, "10s").Should(Equal(1))
 			})
 
-			It("Creates the services", func() {
+			It("Creates the services with correct type and port", func() {
 				_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -134,6 +134,20 @@ var _ = Describe("Creating a VM", func() {
 					Expect(err).NotTo(HaveOccurred())
 					return numberOfServices
 				}, "10s").Should(Equal(5))
+
+				directorService, err := testHelper.GetServiceByName("integration", "director1")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(directorService.Spec.Type)).To(Equal("LoadBalancer"))
+				Expect(int(directorService.Spec.Ports[0].NodePort)).To(Equal(32324))
+
+				agentService, err := testHelper.GetServiceByName("integration", "agent1")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(agentService.Spec.Type)).To(Equal("NodePort"))
+				Expect(int(agentService.Spec.Ports[0].NodePort)).To(Equal(32323))
+
+				blobstoreService, err := testHelper.GetServiceByName("integration", "blobstore1")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(blobstoreService.Spec.Type)).To(Equal("ClusterIP"))
 			})
 		})
 
