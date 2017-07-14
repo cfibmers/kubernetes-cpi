@@ -21,21 +21,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type cpiTemplate interface {
-	setContext(string)
-}
-
-type baseTemplate struct {
+type cpiTemplate struct {
 	Context string
-}
-
-func (b baseTemplate) setContext(c string) {
-	b.Context = c
-}
-
-type deleteDiskTemplate struct {
-	baseTemplate
-	DiskID string
+	DiskID  string
 }
 
 type KubeConfigTemplate struct {
@@ -155,20 +143,28 @@ func ConnectCluster() error {
 		return errors.New(fmt.Sprintf("Cannot find cluster %s", clusterName))
 	}
 
+	// TODO: What's the right way to solve this?  Do we revert to downloading the config,
+	// or do we specify that the user must set his/her KUBECONFIG before running the tests?
+
 	//Set your terminal context to your cluster
-	setContext := exec.Command("bx", "cs", "cluster-config", clusterName)
-	setContextOutput, err := setContext.Output()
-	if err != nil {
-		return errors.Wrap(err, "Setting your terminal context to your cluster")
-	}
+	// setContext := exec.Command("bx", "cs", "cluster-config", clusterName)
+	// setContextOutput, err := setContext.Output()
+	// if err != nil {
+	// 	return errors.Wrap(err, "Setting your terminal context to your cluster")
+	// }
 
 	//Export environment variables to start using Kubernetes.
-	kuberConfig := strings.SplitAfter(string(setContextOutput), "KUBECONFIG=")[1]
-	env := strings.Replace(kuberConfig, "\n", "", -1)
-	err = os.Setenv("KUBECONFIG", env)
-	if err != nil {
-		return errors.Wrap(err, "Exporting  environment variables to start using Kubernetes")
+	// kuberConfig := strings.SplitAfter(string(setContextOutput), "KUBECONFIG=")[1]
+	kuberConfig := os.Getenv("KUBECONFIG")
+	if kuberConfig == "" {
+		return errors.New("You must set the KUBECONFIG environment variable before running the tests")
 	}
+
+	// env := strings.Replace(kuberConfig, "\n", "", -1)
+	// err = os.Setenv("KUBECONFIG", env)
+	// if err != nil {
+	// 	return errors.Wrap(err, "Exporting  environment variables to start using Kubernetes")
+	// }
 
 	return nil
 }
@@ -205,18 +201,13 @@ func RunCpi(rootCpiPath string, configPath string, agentPath string, jsonPayload
 }
 
 func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacementMap map[string]string) (string, error) {
-	var c cpiTemplate
-
-	switch methodName {
-	case "delete_disk":
-		c = deleteDiskTemplate{
-			DiskID: replacementMap["diskID"],
-		}
-	default:
-		c = baseTemplate{}
+	c := cpiTemplate{
+		Context: replacementMap["context"],
 	}
 
-	c.setContext(replacementMap["context"])
+	if val, exists := replacementMap["diskID"]; exists {
+		c.DiskID = val
+	}
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))
 

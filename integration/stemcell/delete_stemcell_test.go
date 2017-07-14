@@ -18,7 +18,7 @@ var _ = Describe("Deleting a Stemcell", func() {
 		rootTemplatePath, tmpConfigPath string
 		replacementMap                  map[string]string
 
-		resultOutput                    map[string]interface{}
+		resultOutput map[string]interface{}
 	)
 
 	BeforeEach(func() {

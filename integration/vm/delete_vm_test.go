@@ -19,16 +19,19 @@ var _ = Describe("Integration test for vm", func() {
 		replacementMap                  map[string]string
 		resultOutput                    map[string]interface{}
 		err                             error
+		jsonPayload                     string
 	)
 
 	CreateVM := func() {
-		var numberOfPods int
-		var numberOfServices int
+		var (
+			numberOfPods, numberOfServices int
+			outputBytes                    []byte
+		)
 
-		jsonPayload, err := testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
+		jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
 		Expect(err).ToNot(HaveOccurred())
 
-		outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+		outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = json.Unmarshal(outputBytes, &resultOutput)
@@ -51,12 +54,14 @@ var _ = Describe("Integration test for vm", func() {
 
 	BeforeEach(func() {
 		clusterName = os.Getenv("CLUSTER_NAME")
-		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterName).NotTo(Equal(""))
 
 		kubeConfig = os.Getenv("KUBECONFIG")
-		Expect(err).ToNot(HaveOccurred())
+		Expect(kubeConfig).NotTo(Equal(""))
 
-		pwd, err := os.Getwd()
+		// TODO: Remove dependency on being run from a specific directory
+		var pwd string
+		pwd, err = os.Getwd()
 		Expect(err).ToNot(HaveOccurred())
 		rootTemplatePath = filepath.Join(pwd, "..", "..")
 
@@ -66,18 +71,34 @@ var _ = Describe("Integration test for vm", func() {
 
 		tmpConfigPath, err = testHelper.CreateTmpConfigFile(rootTemplatePath, configPath, kubeConfig)
 		Expect(err).ToNot(HaveOccurred())
+
+		CreateVM()
+	})
+
+	AfterEach(func() {
+		deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
+		err = deleteAll.Run()
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() int {
+			pc, _ := testHelper.PodCount("integration")
+			return pc
+		}, "10s").Should(Equal(0))
+
+		deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
+		err = deleteCM.Run()
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() int {
+			sc, _ := testHelper.ServiceCount("integration")
+			return sc
+		}, "10s").Should(Equal(0))
 	})
 
 	Context("delete_vm with a valid VM ID", func() {
 		var numberOfPods int
 		var numberOfServices int
 
-		BeforeEach(func() {
-			CreateVM()
-		})
-
 		It("deletes the VM successfully", func() {
-			jsonPayload, err := testHelper.GenerateCpiJsonPayload("delete_vm", rootTemplatePath, replacementMap)
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("delete_vm", rootTemplatePath, replacementMap)
 			Expect(err).ToNot(HaveOccurred())
 
 			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
@@ -95,60 +116,6 @@ var _ = Describe("Integration test for vm", func() {
 			numberOfServices, err = testHelper.ServiceCount("integration")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(numberOfServices).To(Equal(0))
-		})
-
-	})
-
-	Context("delete_vm with an invalid ID", func() {
-		var numberOfPods int
-		var numberOfServices int
-
-		BeforeEach(func() {
-			CreateVM()
-
-			replacementMap = map[string]string{
-				"context": "fake-cluster",
-			}
-		})
-
-		AfterEach(func() {
-			replacementMap = map[string]string{
-				"context": clusterName,
-			}
-
-			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
-			err = deleteAll.Run()
-			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() int {
-				pc, _ := testHelper.PodCount("integration")
-				return pc
-			}, "10s").Should(Equal(0))
-
-			deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
-			err = deleteCM.Run()
-			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() int {
-				sc, _ := testHelper.ServiceCount("integration")
-				return sc
-			}, "10s").Should(Equal(0))
-		})
-
-		It("do nothing", func() {
-			jsonPayload, err := testHelper.GenerateCpiJsonPayload("delete_vm", rootTemplatePath, replacementMap)
-			Expect(err).ToNot(HaveOccurred())
-
-			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
-			Expect(err).ToNot(HaveOccurred())
-			err = json.Unmarshal(outputBytes, &resultOutput)
-			Expect(err).ToNot(HaveOccurred())
-
-			numberOfPods, err = testHelper.PodCount("integration")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfPods).To(Equal(1))
-
-			numberOfServices, err = testHelper.ServiceCount("integration")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfServices).To(Equal(5))
 		})
 	})
 })

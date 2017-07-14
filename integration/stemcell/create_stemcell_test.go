@@ -17,12 +17,12 @@ var _ = Describe("Creating a Stemcell", func() {
 	var (
 		err                             error
 		jsonPayload                     string
-		stemcellName                     string
+		stemcellName                    string
 		kubeConfig                      string
 		rootTemplatePath, tmpConfigPath string
 		replacementMap                  map[string]string
 
-		resultOutput                    map[string]interface{}
+		resultOutput map[string]interface{}
 	)
 
 	BeforeEach(func() {
