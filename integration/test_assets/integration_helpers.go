@@ -112,7 +112,7 @@ func ConnectCluster() error {
 	}
 
 	//log in to the Bluemix CLI
-	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID, "--apikey AqBhH-bI1QgfqejbGxZgt7rlkDOG_js1UPICK2VcXXOf")
+	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
 	err := loginBX.Run()
 	if err != nil {
 		return errors.Wrap(err, "Logging in Bluemix CLI")
