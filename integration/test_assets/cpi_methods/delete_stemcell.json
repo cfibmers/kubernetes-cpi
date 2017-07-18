@@ -1,0 +1,8 @@
+{
+  "method":"delete_stemcell",
+  "arguments":["sykesm/kubernetes-stemcell:3312"],
+  "context":{
+    "director_uuid":"02607221-3856-4cf6-a403-38d937037656",
+    "request_id":"489797"
+  }
+}

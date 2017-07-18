@@ -239,24 +239,43 @@ var _ = Describe("CreateVM", func() {
 		})
 
 		Context("when service definitions are present in the cloud properties", func() {
+			var service1, service2, service3, service4 actions.Service
 			BeforeEach(func() {
-				cloudProps.Services = []actions.Service{
-					{
-						Name: "director",
-						Type: "NodePort",
-						Ports: []actions.Port{
-							{Name: "agent", Protocol: "TCP", Port: 6868, NodePort: 32068},
-							{Name: "director", Protocol: "TCP", Port: 25555, NodePort: 32067},
-						},
-					},
-					{
-						Name:      "blobstore",
-						ClusterIP: "10.0.0.1",
-						Ports: []actions.Port{
-							{Port: 25250, Protocol: "TCP"},
-						},
+				service1 = actions.Service{
+					Name: "director",
+					Type: "NodePort",
+					Ports: []actions.Port{
+						{Name: "agent", Protocol: "TCP", Port: 6868, NodePort: 32068},
+						{Name: "director", Protocol: "TCP", Port: 25555, NodePort: 32067},
 					},
 				}
+
+				service2 = actions.Service{
+					Name:      "blobstore",
+					ClusterIP: "10.0.0.1",
+					Ports: []actions.Port{
+						{Port: 25250, Protocol: "TCP"},
+					},
+				}
+
+				service3 = actions.Service{
+					Name:      "bosh-dns",
+					Type:      "LoadBalancer",
+					ClusterIP: "10.0.0.2",
+					Ports: []actions.Port{
+						{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
+					},
+				}
+
+				service4 = actions.Service{
+					Name: "bosh-dns-1",
+					Type: "LoadBalancer",
+					Ports: []actions.Port{
+						{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
+					},
+				}
+
+				cloudProps.Services = []actions.Service{service1, service2, service3, service4}
 			})
 
 			It("creates the services", func() {
@@ -264,7 +283,7 @@ var _ = Describe("CreateVM", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				matches := fakeClient.MatchingActions("create", "services")
-				Expect(matches).To(HaveLen(2))
+				Expect(matches).To(HaveLen(4))
 
 				service := matches[0].(testing.CreateAction).GetObject().(*v1.Service)
 				Expect(service.Name).To(Equal("director"))
@@ -284,6 +303,26 @@ var _ = Describe("CreateVM", func() {
 				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
 				Expect(service.Spec.Ports).To(ConsistOf(
 					v1.ServicePort{Protocol: "TCP", Port: 25250},
+				))
+
+				service = matches[2].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("bosh-dns"))
+				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
+				Expect(service.Spec.ClusterIP).To(Equal("10.0.0.2"))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
+				))
+
+				service = matches[3].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("bosh-dns-1"))
+				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
+				Expect(len(service.Spec.ClusterIP)).To(Equal(0))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
 				))
 			})
 

@@ -1,16 +1,16 @@
 package disk
 
 import (
-	"os"
-	"strings"
-        "os/exec"
-	"path/filepath"
 	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
-	"k8s.io/client-go/pkg/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 const agentPath = "integration/test_assets/cpi_methods/agent.json"
@@ -27,9 +27,9 @@ var _ = Describe("Disk and Volume Management", func() {
 		resultOutput                    map[string]interface{}
 		numberOfPods                    int
 		numberOfServices                int
-		pvcs           v1.PersistentVolumeClaimList
-		diskID         string
-		oriPod, newPod v1.Pod
+		pvcs                            v1.PersistentVolumeClaimList
+		diskID                          string
+		oriPod, newPod                  v1.Pod
 	)
 
 	CreateVM := func() {

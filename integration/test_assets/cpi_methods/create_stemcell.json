@@ -1,0 +1,13 @@
+{
+  "method":"create_stemcell",
+  "arguments":[
+    "/var/vcap/data/tmp/director/stemcell20170630-3047-1csbs95/image",
+    {
+      "image":"sykesm/kubernetes-stemcell:3312"
+    }
+  ],
+  "context":{
+    "director_uuid":"02607221-3856-4cf6-a403-38d937037656",
+    "request_id":"526398"
+  }
+}
