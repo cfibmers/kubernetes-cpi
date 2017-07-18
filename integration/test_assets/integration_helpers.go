@@ -253,17 +253,13 @@ func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig 
 	userName := fmt.Sprintf("https://iam.ng.bluemix.net/kubernetes#%s", os.Getenv("BX_USERNAME"))
 
 	for _, value := range currentKubeConfig.Clusters {
-		if value.Name == clusterName {
-			apiServer = value.Cluster.Server
-			certName = value.Cluster.CertificateAuthority
-		}
+		apiServer = value.Cluster.Server
+		certName = value.Cluster.CertificateAuthority
 	}
 
 	for _, value := range currentKubeConfig.Users {
-		if value.Name == userName {
-			refreshToken = value.User.AuthProvider.Config.RefreshToken
-			token = value.User.AuthProvider.Config.IDToken
-		}
+		refreshToken = value.User.AuthProvider.Config.RefreshToken
+		token = value.User.AuthProvider.Config.IDToken
 	}
 
 	certPath := fmt.Sprintf("%s/.bluemix/plugins/container-service/clusters/%s/%s", os.Getenv("HOME"), clusterName, certName)
