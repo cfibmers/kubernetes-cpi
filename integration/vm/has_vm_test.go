@@ -73,7 +73,7 @@ var _ = Describe("Integration test for vm", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Context("has_vm with actual pod", func() {
+	Context("When VM has been created", func() {
 		BeforeEach(func() {
 			CreateVM()
 		})
@@ -110,14 +110,7 @@ var _ = Describe("Integration test for vm", func() {
 		})
 	})
 
-	Context("has_vm without valid vm id", func() {
-		BeforeEach(func() {
-			replacementMap = map[string]string{
-				"agentID": "123456789",
-				"context": clusterName,
-			}
-		})
-
+	Context("When VM has not been created", func() {
 		It("returns false because vm doesn't exist", func() {
 			jsonPayload, err := testHelper.GenerateCpiJsonPayload("has_vm", rootTemplatePath, replacementMap)
 			Expect(err).ToNot(HaveOccurred())

@@ -6,12 +6,14 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"k8s.io/client-go/pkg/api/v1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 )
 
-var _ = Describe("Integration test for vm", func() {
+var _ = Describe("set_vm_metadata", func() {
 	var (
 		clusterName                     string
 		kubeConfig                      string
@@ -71,46 +73,49 @@ var _ = Describe("Integration test for vm", func() {
 
 		tmpConfigPath, err = testHelper.CreateTmpConfigFile(rootTemplatePath, configPath, kubeConfig)
 		Expect(err).ToNot(HaveOccurred())
+
+		CreateVM()
 	})
 
-	Context("set_vm_metadata", func() {
-		BeforeEach(func() {
-			CreateVM()
-		})
+	AfterEach(func() {
+		deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
+		err = deleteAll.Run()
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() int {
+			pc, _ := testHelper.PodCount("integration")
+			return pc
+		}, "20s").Should(Equal(0))
 
-		AfterEach(func() {
-			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
-			err = deleteAll.Run()
-			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() int {
-				pc, _ := testHelper.PodCount("integration")
-				return pc
-			}, "20s").Should(Equal(0))
+		deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
+		err = deleteCM.Run()
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(func() int {
+			sc, _ := testHelper.ServiceCount("integration")
+			return sc
+		}, "20s").Should(Equal(0))
+	})
 
-			deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
-			err = deleteCM.Run()
-			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() int {
-				sc, _ := testHelper.ServiceCount("integration")
-				return sc
-			}, "20s").Should(Equal(0))
-		})
+	// Possible contexts: when adding new keys, when changing existing keys
+	It("set the VM metadata successfully", func() {
+		var pods v1.PodList
+		pods, err = testHelper.GetPodListByAgentId("integration", agentId)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/director"]).NotTo(Equal("bosh"))
+		Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/deployment"]).NotTo(Equal("cf-kube"))
 
-		It("set the VM metadata successfully", func() {
-			jsonPayload, err := testHelper.GenerateCpiJsonPayload("set_vm_metadata", rootTemplatePath, replacementMap)
-			Expect(err).ToNot(HaveOccurred())
+		jsonPayload, err := testHelper.GenerateCpiJsonPayload("set_vm_metadata", rootTemplatePath, replacementMap)
+		Expect(err).ToNot(HaveOccurred())
 
-			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
-			Expect(err).ToNot(HaveOccurred())
+		outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+		Expect(err).ToNot(HaveOccurred())
 
-			err = json.Unmarshal(outputBytes, &resultOutput)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(resultOutput["result"]).To(BeNil())
-			Expect(resultOutput["error"]).To(BeNil())
+		err = json.Unmarshal(outputBytes, &resultOutput)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(resultOutput["result"]).To(BeNil())
+		Expect(resultOutput["error"]).To(BeNil())
 
-			pods, err := testHelper.GetPodListByAgentId("integration", agentId)
-			Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/director"]).To(Equal("bosh"))
-			Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/deployment"]).To(Equal("cf-kube"))
-		})
+		pods, _ = testHelper.GetPodListByAgentId("integration", agentId)
+		Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/director"]).To(Equal("bosh"))
+		Expect(pods.Items[0].ObjectMeta.Labels["bosh.cloudfoundry.org/deployment"]).To(Equal("cf-kube"))
 	})
 })
