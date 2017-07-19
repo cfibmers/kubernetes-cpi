@@ -250,7 +250,6 @@ func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig 
 	var refreshToken string
 	var token string
 	clusterName := currentKubeConfig.CurrentContext
-	userName := fmt.Sprintf("https://iam.ng.bluemix.net/kubernetes#%s", os.Getenv("BX_USERNAME"))
 
 	for _, value := range currentKubeConfig.Clusters {
 		apiServer = value.Cluster.Server
