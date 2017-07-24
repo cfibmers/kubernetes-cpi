@@ -87,14 +87,19 @@ func ConnectCluster() error {
 		return errors.New("BX_USERNAME must be set")
 	}
 
+	// optional api key -- only applies to those with federated IDs
+	bxAPIKey := os.Getenv("BX_API_KEY")
+
+	// if the api key is provided, no password is required; however, one or the other must be set
 	bxPassword := os.Getenv("BX_PASSWORD")
-	if bxPassword == "" {
-		return errors.New("BX_PASSWORD must be set")
+	if bxAPIKey == "" && bxPassword == "" {
+		return errors.New("BX_API_KEY or BX_PASSWORD must be set")
 	}
 
+	// if the api key is provided, no acct id is required; however, one or the other must be set
 	bxAccountID := os.Getenv("BX_ACCOUNTID")
-	if bxAccountID == "" {
-		return errors.New("BX_ACCOUNTID must be set")
+	if bxAPIKey == "" && bxAccountID == "" {
+		return errors.New("BX_API_KEY or BX_ACCOUNTID must be set")
 	}
 
 	clusterName := os.Getenv("CLUSTER_NAME")
@@ -112,11 +117,20 @@ func ConnectCluster() error {
 		return errors.New("SL_API_KEY must be set")
 	}
 
-	//log in to the Bluemix CLI
-	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
+	loginArgs := []string{"login", "-a", bxAPI, "-c", bxAccountID}
+
+	// Log in to the Bluemix CLI.
+	if bxAPIKey != "" {
+		loginArgs = append(loginArgs, "--apikey", bxAPIKey)
+	} else {
+		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword)
+	}
+
+	loginBX := exec.Command("bx", loginArgs...)
+
 	err := loginBX.Run()
 	if err != nil {
-		return errors.Wrap(err, "Logging in Bluemix CLI")
+		return errors.Wrap(err, "Logging in to Bluemix CLI")
 	}
 
 	//Initialize the IBM Bluemix Container Service plug-in
