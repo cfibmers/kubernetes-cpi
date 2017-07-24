@@ -520,6 +520,43 @@ var _ = Describe("CreateVM", func() {
 		})
 	})
 
+	Context("when replicas property is present in cloud properties", func() {
+		var (
+			stemcellCID cpi.StemcellCID
+			cloudProps  actions.VMCloudProperties
+			diskCIDs    []cpi.DiskCID
+		)
+
+		BeforeEach(func() {
+			stemcellCID = cpi.StemcellCID("ScarletTanager/kubernetes-stemcell:999")
+			cloudProps = actions.VMCloudProperties{Context: "bosh"}
+			diskCIDs = []cpi.DiskCID{}
+		})
+
+		testReplicaCount := func(val int32, shouldError bool) {
+			cloudProps.Replicas = &val
+			_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
+			if shouldError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
+
+		It("evaluates the replicas property on failure", func() {
+			testReplicaCount(int32(-2), true)
+			testReplicaCount(int32(0), true)
+		})
+
+		It("evaluates the replicas property for one replica", func() {
+			testReplicaCount(int32(1), false)
+		})
+
+		It("evaluates the replicas property for more than one replica", func() {
+			testReplicaCount(int32(2), false)
+		})
+	})
+
 	Describe("InstanceSettings", func() {
 		It("copies the blobstore from the agent config", func() {
 			agentSettings, err := vmCreator.InstanceSettings(agentID, networks, env)

@@ -4,6 +4,7 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 	"k8s.io/client-go/kubernetes/fake"
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/testing"
 )
@@ -48,6 +49,10 @@ func (c *Client) PersistentVolumes() core.PersistentVolumeInterface {
 
 func (c *Client) Pods() core.PodInterface {
 	return c.Core().Pods(c.Namespace())
+}
+
+func (c *Client) Deployments() extensions.DeploymentInterface {
+	return c.Extensions().Deployments(c.Namespace())
 }
 
 func (c *Client) MatchingActions(verb, resource string) []testing.Action {
