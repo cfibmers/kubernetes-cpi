@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 	"k8s.io/client-go/pkg/api/v1"
+	"fmt"
 )
 
 const agentPath = "integration/test_assets/cpi_methods/agent.json"
@@ -30,9 +31,17 @@ var _ = Describe("Disk and Volume Management", func() {
 		pvcs                            v1.PersistentVolumeClaimList
 		diskID                          string
 		oriPod, newPod                  v1.Pod
+		agentId                         string
+		podName                         string
 	)
 
 	CreateVM := func() {
+		agentId = "490c18a5-3bb4-4b92-8550-ee4a1e955624"
+		replacementMap = map[string]string{
+			"agentID": agentId,
+			"context": clusterName,
+		}
+
 		jsonPayload, err := testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -58,6 +67,10 @@ var _ = Describe("Disk and Volume Management", func() {
 	}
 
 	CreateDisk := func() {
+		replacementMap = map[string]string{
+			"context": clusterName,
+		}
+
 		jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_disk", rootTemplatePath, replacementMap)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -106,7 +119,8 @@ var _ = Describe("Disk and Volume Management", func() {
 			CreateVM()
 			CreateDisk()
 
-			oriPod, err = testHelper.GetPodByName("agent-0fd9ff80-d39c-47da-6827-e1825bc8a999", "integration")
+			podName = fmt.Sprintf("agent-%s", agentId)
+			oriPod, err = testHelper.GetPodByName(podName, "integration")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(testHelper.PodCount("integration")).To(Equal(1))
 
@@ -117,6 +131,7 @@ var _ = Describe("Disk and Volume Management", func() {
 			replacementMap = map[string]string{
 				"context": clusterName,
 				"diskID":  diskID,
+				"agentID": agentId,
 			}
 
 			jsonPayload, err = testHelper.GenerateCpiJsonPayload("attach_disk", rootTemplatePath, replacementMap)
@@ -143,7 +158,7 @@ var _ = Describe("Disk and Volume Management", func() {
 			Expect(len(pvcs.Items)).To(Equal(1))
 			Expect(testHelper.PodCount("integration")).To(Equal(1))
 
-			newPod, err = testHelper.GetPodByName("agent-0fd9ff80-d39c-47da-6827-e1825bc8a999", "integration")
+			newPod, err = testHelper.GetPodByName(podName, "integration")
 			Eventually(len(newPod.Spec.Volumes), 600).Should(BeNumerically(">", len(oriPod.Spec.Volumes)))
 			Expect(newPod.Spec.Hostname).To(Equal(oriPod.Spec.Hostname))
 		})

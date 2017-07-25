@@ -444,6 +444,8 @@ func GetPodByName(podName string, namespace string) (v1.Pod, error) {
 	if err := cmd.Wait(); err != nil {
 		return pod, errors.New("Failure in Wait() when executing external command")
 	}
+
+	return pod, nil
 }
 
 func GetPodListByAgentId(namespace string, agentId string) (v1.PodList, error) {
