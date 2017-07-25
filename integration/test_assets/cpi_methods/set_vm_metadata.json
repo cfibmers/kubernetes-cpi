@@ -1,0 +1,17 @@
+{
+  "method": "set_vm_metadata",
+  "arguments": [
+    "{{ .Context }}:{{ .AgentID }}",
+    {
+      "director": "bosh",
+      "deployment": "cf-kube",
+      "id": "9e0497c2-d04f-4a33-a24a-816631825f23",
+      "job": "compilation-bd37429d-64bf-4949-bdbe-3d6bda1e6e4c",
+      "index": "0",
+      "name": "compilation-bd37429d-64bf-4949-bdbe-3d6bda1e6e4c/9e0497c2-d04f-4a33-a24a-816631825f23"
+    }
+  ],
+  "context": {
+    "director_uuid": "director-id"
+  }
+}

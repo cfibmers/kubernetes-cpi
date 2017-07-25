@@ -24,9 +24,14 @@ var _ = Describe("Creating a VM", func() {
 		replacementMap                  map[string]string
 		errorOutput                     map[string]interface{}
 		resultOutput                    map[string]interface{}
+
+		agentId string
 	)
 
 	BeforeEach(func() {
+		clusterName = os.Getenv("CLUSTER_NAME")
+		Expect(err).ToNot(HaveOccurred())
+
 		kubeConfig = os.Getenv("KUBECONFIG")
 		Expect(err).ToNot(HaveOccurred())
 
@@ -34,7 +39,9 @@ var _ = Describe("Creating a VM", func() {
 		pwd, _ := os.Getwd()
 		rootTemplatePath = filepath.Join(pwd, "..", "..")
 
+		agentId = "490c18a5-3bb4-4b92-8550-ee4a1e955624"
 		replacementMap = map[string]string{
+			"agentID": agentId,
 			"context": clusterName,
 		}
 
@@ -78,7 +85,8 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		It("Returns a valid result", func() {
-			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			var outputBytes []byte
+			outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = json.Unmarshal(outputBytes, &resultOutput)
@@ -92,7 +100,7 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		It("Creates the VM as a k8s pod", func() {
-			_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			_, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(func() int {

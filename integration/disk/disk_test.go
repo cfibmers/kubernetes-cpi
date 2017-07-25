@@ -2,7 +2,6 @@ package disk_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,6 +92,54 @@ var _ = Describe("Disk and Volume Management", func() {
 		})
 	})
 
+	Context("Has a disk", func() {
+
+		It("Does not have a disk when the disk does not exist", func() {
+			replacementMap["diskID"] = "someJunkyDiskID"
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("has_disk", rootTemplatePath, replacementMap)
+			obytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(obytes, &output)
+			Expect(err).ToNot(HaveOccurred())
+
+			result := output["result"].(bool)
+			Expect(result).To(Equal(false))
+		})
+
+		It("Has a disk when the disk does exist", func() {
+			// Create a disk
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_disk", rootTemplatePath, replacementMap)
+			Expect(err).ToNot(HaveOccurred())
+
+			obytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(obytes, &output)
+			Expect(err).ToNot(HaveOccurred())
+
+			diskID := strings.Split(output["result"].(string), ":")[1]
+			replacementMap["diskID"] = diskID
+
+			// run the has_disk cpi
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("has_disk", rootTemplatePath, replacementMap)
+			obytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(obytes, &output)
+			Expect(err).ToNot(HaveOccurred())
+
+			result := output["result"].(bool)
+			Expect(result).To(Equal(true))
+
+			// delete the disk
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "pvc", "--all")
+			err = deleteAll.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+
 	Context("Deleting a disk", func() {
 		var pvcs v1.PersistentVolumeClaimList
 
@@ -108,7 +155,6 @@ var _ = Describe("Disk and Volume Management", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			diskID := strings.Split(output["result"].(string), ":")[1]
-			fmt.Println(diskID)
 
 			replacementMap["diskID"] = diskID
 

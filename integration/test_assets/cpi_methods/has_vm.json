@@ -1,5 +1,5 @@
 {
-  "method": "delete_vm",
+  "method": "has_vm",
   "arguments": [
     "{{ .Context }}:{{ .AgentID }}"
   ],

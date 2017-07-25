@@ -24,6 +24,7 @@ import (
 type cpiTemplate struct {
 	Context string
 	DiskID  string
+	AgentID string
 }
 
 type KubeConfigTemplate struct {
@@ -86,14 +87,19 @@ func ConnectCluster() error {
 		return errors.New("BX_USERNAME must be set")
 	}
 
+	// optional api key -- only applies to those with federated IDs
+	bxAPIKey := os.Getenv("BX_API_KEY")
+
+	// if the api key is provided, no password is required; however, one or the other must be set
 	bxPassword := os.Getenv("BX_PASSWORD")
-	if bxPassword == "" {
-		return errors.New("BX_PASSWORD must be set")
+	if bxAPIKey == "" && bxPassword == "" {
+		return errors.New("BX_API_KEY or BX_PASSWORD must be set")
 	}
 
+	// if the api key is provided, no acct id is required; however, one or the other must be set
 	bxAccountID := os.Getenv("BX_ACCOUNTID")
-	if bxAccountID == "" {
-		return errors.New("BX_ACCOUNTID must be set")
+	if bxAPIKey == "" && bxAccountID == "" {
+		return errors.New("BX_API_KEY or BX_ACCOUNTID must be set")
 	}
 
 	clusterName := os.Getenv("CLUSTER_NAME")
@@ -111,11 +117,20 @@ func ConnectCluster() error {
 		return errors.New("SL_API_KEY must be set")
 	}
 
-	//log in to the Bluemix CLI
-	loginBX := exec.Command("bx", "login", "-a", bxAPI, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
+	loginArgs := []string{"login", "-a", bxAPI, "-c", bxAccountID}
+
+	// Log in to the Bluemix CLI.
+	if bxAPIKey != "" {
+		loginArgs = append(loginArgs, "--apikey", bxAPIKey)
+	} else {
+		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword)
+	}
+
+	loginBX := exec.Command("bx", loginArgs...)
+
 	err := loginBX.Run()
 	if err != nil {
-		return errors.Wrap(err, "Logging in Bluemix CLI")
+		return errors.Wrap(err, "Logging in to Bluemix CLI")
 	}
 
 	//Initialize the IBM Bluemix Container Service plug-in
@@ -201,12 +216,21 @@ func RunCpi(rootCpiPath string, configPath string, agentPath string, jsonPayload
 }
 
 func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacementMap map[string]string) (string, error) {
+	var (
+		val    string
+		exists bool
+	)
+
 	c := cpiTemplate{
 		Context: replacementMap["context"],
 	}
 
-	if val, exists := replacementMap["diskID"]; exists {
+	if val, exists = replacementMap["diskID"]; exists {
 		c.DiskID = val
+	}
+
+	if val, exists = replacementMap["agentID"]; exists {
+		c.AgentID = val
 	}
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))
@@ -240,20 +264,15 @@ func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig 
 	var refreshToken string
 	var token string
 	clusterName := currentKubeConfig.CurrentContext
-	userName := fmt.Sprintf("https://iam.ng.bluemix.net/kubernetes#%s", os.Getenv("BX_USERNAME"))
 
 	for _, value := range currentKubeConfig.Clusters {
-		if value.Name == clusterName {
-			apiServer = value.Cluster.Server
-			certName = value.Cluster.CertificateAuthority
-		}
+		apiServer = value.Cluster.Server
+		certName = value.Cluster.CertificateAuthority
 	}
 
 	for _, value := range currentKubeConfig.Users {
-		if value.Name == userName {
-			refreshToken = value.User.AuthProvider.Config.RefreshToken
-			token = value.User.AuthProvider.Config.IDToken
-		}
+		refreshToken = value.User.AuthProvider.Config.RefreshToken
+		token = value.User.AuthProvider.Config.IDToken
 	}
 
 	certPath := fmt.Sprintf("%s/.bluemix/plugins/container-service/clusters/%s/%s", os.Getenv("HOME"), clusterName, certName)
@@ -425,6 +444,27 @@ func GetPodByName(podName string, namespace string) (v1.Pod, error) {
 	if err := cmd.Wait(); err != nil {
 		return pod, errors.New("Failure in Wait() when executing external command")
 	}
+}
 
-	return pod, nil
+func GetPodListByAgentId(namespace string, agentId string) (v1.PodList, error) {
+	var pods v1.PodList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "pods", "-l", fmt.Sprintf("bosh.cloudfoundry.org/agent-id=%s", agentId), "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return v1.PodList{}, err
+	}
+	if err := cmd.Start(); err != nil {
+		return v1.PodList{}, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pods); err != nil {
+		return v1.PodList{}, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return v1.PodList{}, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return pods, nil
 }

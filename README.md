@@ -8,13 +8,13 @@ A CPI to deploy bosh releases to Kubernetes.
 Clone this repo and build it. Using the following commands on a Linux or Mac OS X system:
 
 ```
-$ pwd
-/Users/{your-user-name}
+$ MY_GO_PROJECTS=/path/to/go/projects
+$ export GOPATH=$MY_GO_PROJECTS:$GOPATH
+$ cd $MY_GO_PROJECTS
 $ mkdir -p src/github.ibm.com/Bluemix
 $ cd src/github.ibm.com/Bluemix
-$ git clone https://github.ibm.com:Bluemix/kubernetes-cpi.git
+$ git clone git@github.ibm.com:Bluemix/kubernetes-cpi.git
 $ cd kubernetes-cpi
-$ export GOPATH=/Users/{your-user-name}
 $ ./bin/build
 ```
 The executable output should now be located in: `out/cpi`.
@@ -22,9 +22,14 @@ The executable output should now be located in: `out/cpi`.
 ### Running Tests
 -----------------
 
+#### - Install Ginkgo and Gomega
+
+```shell
+$ go get github.com/onsi/ginkgo/ginkgo
+$ go get github.com/onsi/gomega
+```
+
 #### - Unit Tests
-
-
 
 You can run the tests to make sure all is well, run unit tests with: `$ bin/test-unit` . The output of `$ bin/test-unit` should be similar to:
 
@@ -53,13 +58,11 @@ SWEET SUITE SUCCESS
 #### - Integration Tests
 
  1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here](https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install).
- 2. Provide API endpoint, credentials and cluster name etc. Fill in all the fields in `integration/env`  and run `source integration/env`.
-
+ 2. Provide API endpoint, credentials and cluster name, etc., in your `.bashrc` or `.bash_profile`. There's an example config in [integration/env](integration/env).
  > **Note:**
 
- > - Please set  $CLUSTER_NAME to the name of an existed and fully functional cluster, as integration tests will use the cluster directly to create pods etc.
+ > - Please set $CLUSTER_NAME to the name of a functioning cluster, as integration tests will use the cluster directly to create pods, etc.
  > - Please keep the double quote in case there are some special characters of the values provided.
- > - Here is an `example integration/env file` for your reference.
 
 
 
@@ -68,6 +71,7 @@ $ cat integration/env
 export BX_API="{bluemix-api}"
 export BX_USERNAME="{bluemix-user-name}"
 export BX_PASSWORD="{bluemix-password}"
+# optionally supply BX_API_KEY if your ID is federated; BX_PASSWORD is not needed in that case, but you must supply one or the other
 export BX_ACCOUNTID="{bluemix-account}"
 export CLUSTER_NAME="{existed-cluster}"
 export SL_USERNAME="{softlayer-username}"
@@ -78,6 +82,7 @@ $ cat integration/env
 export BX_API="api.ng.bluemix.net"
 export BX_USERNAME="zhanggbj"
 export BX_PASSWORD="password"
+# export BX_API_KEY="abc"
 export BX_ACCOUNTID="12345678910027ca24sdd12345678910"
 export CLUSTER_NAME="cluster_integration"
 export SL_USERNAME="zhanggbj"
