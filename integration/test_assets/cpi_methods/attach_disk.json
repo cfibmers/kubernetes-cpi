@@ -1,0 +1,10 @@
+{
+  "method": "attach_disk",
+  "arguments": [
+    "{{ .Context }}:{{ .AgentID }}",
+    "{{ .Context }}:{{ .DiskID }}"
+  ],
+  "context": {
+    "director_uuid": "director-id"
+  }
+}
