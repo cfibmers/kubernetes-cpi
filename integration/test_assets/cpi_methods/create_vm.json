@@ -71,6 +71,42 @@
               "protocol": "TCP"
             }
           ]
+        },
+        {
+          "name": "ha-proxy-1",
+          "selector": {
+            "bosh.cloudfoundry.org/job": "ha_proxy_z1"
+          },
+          "ports": [
+            {
+              "name": "ha-proxy-1",
+              "target_port": 80,
+              "port": 80,
+              "node_port": 30080,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "LoadBalancer"
+        },
+        {
+          "name": "ha-proxy-2",
+          "selector": {
+            "bosh.cloudfoundry.org/job": "ha_proxy_z1"
+          },
+          "ports": [
+            {
+              "name": "ha-proxy-2",
+              "target_port": 443,
+              "port": 443,
+              "node_port": 30443,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "NodePort",
+          "external_ips": [
+            "158.10.10.10",
+            "158.10.10.11"
+          ]
         }
       ]
     },

@@ -16,6 +16,7 @@ func TestVM(t *testing.T) {
 var _ = BeforeSuite(func() {
 	err := testHelper.ConnectCluster()
 	Expect(err).NotTo(HaveOccurred(), "Connecting cluster ...")
+	testHelper.CreateNamespace("integration")
 })
 
 var _ = AfterSuite(func() {
