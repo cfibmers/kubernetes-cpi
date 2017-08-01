@@ -125,7 +125,7 @@ func ConnectCluster() error {
 	if bxAPIKey != "" {
 		loginArgs = append(loginArgs, "--apikey", bxAPIKey)
 	} else {
-		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword)
+		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
 	}
 
 	loginBX := exec.Command("bx", loginArgs...)
