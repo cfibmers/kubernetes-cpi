@@ -51,17 +51,12 @@ var _ = Describe("Disk and Volume Management", func() {
 
 	Context("Creating a Disk", func() {
 		var (
-			pvcs         v1.PersistentVolumeClaimList
-			numberOfPods int
+			pvcs v1.PersistentVolumeClaimList
 		)
 
 		BeforeEach(func() {
 			jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_disk", rootTemplatePath, replacementMap)
 			Expect(err).ToNot(HaveOccurred())
-
-			numberOfPods, err = testHelper.PodCount("integration")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(numberOfPods).To(Equal(0))
 
 			pvcs, err = testHelper.Pvcs("integration")
 			Expect(err).NotTo(HaveOccurred())

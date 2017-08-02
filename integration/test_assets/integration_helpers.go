@@ -322,15 +322,42 @@ func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig 
 }
 
 func DeleteNamespace(namespace string) {
-	deleteNs := exec.Command("kubectl", "delete", "ns", namespace)
-	err := deleteNs.Run()
-	Expect(err).NotTo(HaveOccurred())
+	if namespaceExists(namespace) {
+		deleteNs := exec.Command("kubectl", "delete", "ns", namespace)
+		deleteNs.Run()
+	}
 }
 
 func CreateNamespace(namespace string) {
-	createNs := exec.Command("kubectl", "create", "ns", namespace)
-	err := createNs.Run()
+	if namespaceExists(namespace) == false {
+		_, err := exec.Command("kubectl", "create", "ns", namespace).Output()
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func namespaceExists(namespace string) bool {
+	var namespaces v1.NamespaceList
+
+	cmd := exec.Command("kubectl", "get", "namespaces", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
 	Expect(err).NotTo(HaveOccurred())
+
+	err = cmd.Start()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = json.NewDecoder(cmdOut).Decode(&namespaces)
+	Expect(err).NotTo(HaveOccurred(), "Deserializing namespace list...")
+
+	err = cmd.Wait()
+	Expect(err).NotTo(HaveOccurred(), "Wait()ing on listing namespaces")
+
+	for _, ns := range namespaces.Items {
+		if ns.GetName() == namespace {
+			return true
+		}
+	}
+
+	return false
 }
 
 func PodCount(namespace string) (int, error) {
