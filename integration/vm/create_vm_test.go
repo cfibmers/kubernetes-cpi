@@ -2,9 +2,11 @@ package vm_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -188,6 +190,83 @@ var _ = Describe("Creating a VM", func() {
 				Expect(errorOutput["result"]).To(Equal(""))
 				Expect(errorOutput["error"]).ToNot(BeNil())
 			})
+		})
+	})
+
+	Context("Creating a VM (replicas)", func() {
+		var numberOfPods int
+		var numberOfReplicas int32
+		var outputBytes []byte
+
+		numReplicasInput := 2
+
+		BeforeEach(func() {
+			replacementMap["replicas"] = fmt.Sprintf("\"replicas\": %v,", numReplicasInput)
+
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
+			Expect(err).ToNot(HaveOccurred())
+
+			numberOfPods, err = testHelper.PodCount("integration")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(numberOfPods).To(Equal(0))
+		})
+
+		AfterEach(func() {
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc", "--all")
+			err = deleteAll.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() int {
+				pc, _ := testHelper.PodCount("integration")
+				return pc
+			}, "20s").Should(Equal(0))
+
+			deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
+			err = deleteCM.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() int {
+				sc, _ := testHelper.ServiceCount("integration")
+				return sc
+			}, "20s").Should(Equal(0))
+		})
+
+		It("Returns a valid result", func() {
+			var outputBytes []byte
+			outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(outputBytes, &resultOutput)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resultOutput["result"]).ToNot(BeNil())
+			Expect(resultOutput["error"]).To(BeNil())
+
+			id := resultOutput["result"].(string)
+			Expect(id).Should(ContainSubstring(clusterName))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Creates the VM as a deployment with N replicas", func() {
+			outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(outputBytes, &resultOutput)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resultOutput["result"]).ToNot(BeNil())
+			Expect(resultOutput["error"]).To(BeNil())
+
+			id := resultOutput["result"].(string)
+			agentId := strings.TrimPrefix(id, clusterName+":")
+
+			Eventually(func() int {
+				numberOfPods, err = testHelper.PodCount("integration")
+				Expect(err).NotTo(HaveOccurred())
+				return numberOfPods
+			}, "10s").Should(Equal(numReplicasInput))
+
+			Eventually(func() int {
+				numberOfReplicas, err = testHelper.ReplicaCount("integration", agentId)
+				Expect(err).NotTo(HaveOccurred())
+				return int(numberOfReplicas)
+			}, "10s").Should(Equal(numReplicasInput))
 		})
 	})
 })

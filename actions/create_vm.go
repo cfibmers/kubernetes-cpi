@@ -12,11 +12,14 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/util/intstr"
+	api "k8s.io/client-go/pkg/api/v1"
+	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
 
 type VMCreator struct {
@@ -49,6 +52,8 @@ const (
 	ResourceMemory ResourceName = "memory"
 )
 
+var ProgressDeadlineSeconds int32 = 30
+
 type ResourceList map[ResourceName]string
 
 type Resources struct {
@@ -60,6 +65,7 @@ type VMCloudProperties struct {
 	Context   string    `json:"context"`
 	Services  []Service `json:"services,omitempty"`
 	Resources Resources `json:"resources,omitempty"`
+	Replicas  *int32    `json:"replicas"`
 }
 
 func (v *VMCreator) Create(
@@ -110,10 +116,20 @@ func (v *VMCreator) Create(
 		return "", err
 	}
 
-	// create the pod
-	_, err = createPod(client.Pods(), ns, agentID, string(stemcellCID), *network, cloudProps.Resources)
-	if err != nil {
-		return "", err
+	if cloudProps.Replicas == nil {
+		// create the pod
+		_, err = createPod(client.Pods(), ns, agentID, string(stemcellCID), *network, cloudProps.Resources)
+		if err != nil {
+			return "", err
+		}
+	} else if *cloudProps.Replicas >= 1 {
+		// create the deployments
+		_, err := createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", errors.New("Invalid number of Replicas specified in Cloud Properties")
 	}
 
 	return NewVMCID(client.Context(), agentID), nil
@@ -338,6 +354,86 @@ func createPod(podClient core.PodInterface, ns, agentID, image string, network c
 			}},
 		},
 	})
+}
+
+func createDeployment(deploymentClient extensions.DeploymentInterface,
+	ns, agentID, image string,
+	network cpi.Network,
+	cloudProps VMCloudProperties,
+) (*v1beta1.Deployment, error) {
+	trueValue := true
+	rootUID := int64(0)
+
+	annotations := map[string]string{}
+	if len(network.IP) > 0 {
+		annotations["bosh.cloudfoundry.org/ip-address"] = network.IP
+	}
+
+	resourceReqs, err := getPodResourceRequirements(cloudProps.Resources)
+	if err != nil {
+		return nil, err
+	}
+	deployment := &v1beta1.Deployment{
+		ObjectMeta: api.ObjectMeta{
+			Name:      "agent-" + agentID,
+			Namespace: ns,
+		},
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: cloudProps.Replicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: api.ObjectMeta{
+					Labels: map[string]string{
+						"app": "demo", // TODO
+					},
+				},
+				Spec: v1.PodSpec{
+					Hostname: agentID,
+					Containers: []v1.Container{{
+						Name:            "bosh-job",
+						Image:           image,
+						ImagePullPolicy: v1.PullAlways,
+						Command:         []string{"/usr/sbin/runsvdir-start"},
+						Args:            []string{},
+						Resources:       resourceReqs,
+						SecurityContext: &v1.SecurityContext{
+							Privileged: &trueValue,
+							RunAsUser:  &rootUID,
+						},
+						VolumeMounts: []v1.VolumeMount{{
+							Name:      "bosh-config",
+							MountPath: "/var/vcap/bosh/instance_settings.json",
+							SubPath:   "instance_settings.json",
+						}, {
+							Name:      "bosh-ephemeral",
+							MountPath: "/var/vcap/data",
+						}},
+					}},
+					Volumes: []v1.Volume{{
+						Name: "bosh-config",
+						VolumeSource: v1.VolumeSource{
+							ConfigMap: &v1.ConfigMapVolumeSource{
+								LocalObjectReference: v1.LocalObjectReference{
+									Name: "agent-" + agentID,
+								},
+								Items: []v1.KeyToPath{{
+									Key:  "instance_settings",
+									Path: "instance_settings.json",
+								}},
+							},
+						},
+					}, {
+						Name: "bosh-ephemeral",
+						VolumeSource: v1.VolumeSource{
+							EmptyDir: &v1.EmptyDirVolumeSource{},
+						},
+					}},
+				},
+			},
+			ProgressDeadlineSeconds: &ProgressDeadlineSeconds,
+		},
+	}
+
+	return deploymentClient.Create(deployment)
 }
 
 func getPodResourceRequirements(resources Resources) (v1.ResourceRequirements, error) {

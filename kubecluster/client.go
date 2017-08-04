@@ -3,6 +3,7 @@ package kubecluster
 import (
 	"k8s.io/client-go/kubernetes"
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 )
 
 type Client interface {
@@ -15,6 +16,7 @@ type Client interface {
 	PersistentVolumes() core.PersistentVolumeInterface
 	PersistentVolumeClaims() core.PersistentVolumeClaimInterface
 	Pods() core.PodInterface
+	Deployments() v1beta1.DeploymentInterface
 	Services() core.ServiceInterface
 }
 
@@ -49,6 +51,10 @@ func (c *client) PersistentVolumes() core.PersistentVolumeInterface {
 
 func (c *client) Pods() core.PodInterface {
 	return c.Core().Pods(c.namespace)
+}
+
+func (c *client) Deployments() v1beta1.DeploymentInterface {
+	return c.Extensions().Deployments(c.namespace)
 }
 
 func (c *client) Services() core.ServiceInterface {

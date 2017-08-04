@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"k8s.io/client-go/pkg/api/v1"
+	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
 	"gopkg.in/yaml.v2"
 
@@ -22,9 +23,10 @@ import (
 )
 
 type cpiTemplate struct {
-	Context string
-	DiskID  string
-	AgentID string
+	Context  string
+	DiskID   string
+	AgentID  string
+	Replicas string
 }
 
 type KubeConfigTemplate struct {
@@ -117,13 +119,13 @@ func ConnectCluster() error {
 		return errors.New("SL_API_KEY must be set")
 	}
 
-	loginArgs := []string{"login", "-a", bxAPI, "-c", bxAccountID}
+	loginArgs := []string{"login", "-a", bxAPI}
 
 	// Log in to the Bluemix CLI.
 	if bxAPIKey != "" {
 		loginArgs = append(loginArgs, "--apikey", bxAPIKey)
 	} else {
-		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword)
+		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
 	}
 
 	loginBX := exec.Command("bx", loginArgs...)
@@ -228,9 +230,11 @@ func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacem
 	if val, exists = replacementMap["diskID"]; exists {
 		c.DiskID = val
 	}
-
 	if val, exists = replacementMap["agentID"]; exists {
 		c.AgentID = val
+	}
+	if val, exists = replacementMap["replicas"]; exists {
+		c.Replicas = val
 	}
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))
@@ -318,15 +322,42 @@ func CreateTmpConfigFile(rootTemplatePath string, configPath string, kubeConfig 
 }
 
 func DeleteNamespace(namespace string) {
-	deleteNs := exec.Command("kubectl", "delete", "ns", namespace)
-	err := deleteNs.Run()
-	Expect(err).NotTo(HaveOccurred())
+	if namespaceExists(namespace) {
+		deleteNs := exec.Command("kubectl", "delete", "ns", namespace)
+		deleteNs.Run()
+	}
 }
 
 func CreateNamespace(namespace string) {
-	createNs := exec.Command("kubectl", "create", "ns", namespace)
-	err := createNs.Run()
+	if namespaceExists(namespace) == false {
+		_, err := exec.Command("kubectl", "create", "ns", namespace).Output()
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func namespaceExists(namespace string) bool {
+	var namespaces v1.NamespaceList
+
+	cmd := exec.Command("kubectl", "get", "namespaces", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
 	Expect(err).NotTo(HaveOccurred())
+
+	err = cmd.Start()
+	Expect(err).NotTo(HaveOccurred())
+
+	err = json.NewDecoder(cmdOut).Decode(&namespaces)
+	Expect(err).NotTo(HaveOccurred(), "Deserializing namespace list...")
+
+	err = cmd.Wait()
+	Expect(err).NotTo(HaveOccurred(), "Wait()ing on listing namespaces")
+
+	for _, ns := range namespaces.Items {
+		if ns.GetName() == namespace {
+			return true
+		}
+	}
+
+	return false
 }
 
 func PodCount(namespace string) (int, error) {
@@ -354,6 +385,36 @@ func PodCount(namespace string) (int, error) {
 	// 	fmt.Fprintf(os.Stderr, "Pod: %s\tNamespace: %s\n", pods.Items[i].ObjectMeta.Name, pods.Items[i].ObjectMeta.Namespace)
 	// }
 	return len(pods.Items), nil
+}
+
+func ReplicaCount(namespace, vmcid string) (int32, error) {
+	var deployments v1beta1.DeploymentList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "deployments", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&deployments); err != nil {
+		return 0, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return 0, errors.New("Failure in Wait() when executing external command")
+	}
+
+	// Find appropriate deployment and return number of replicas
+	for _, deployment := range deployments.Items {
+		if deployment.GetObjectMeta().GetName() == "agent-"+vmcid {
+			return *deployment.Spec.Replicas, nil
+		}
+	}
+
+	return 0, fmt.Errorf("could not find deployment agent-%s", vmcid)
 }
 
 func ServiceCount(namespace string) (int, error) {
