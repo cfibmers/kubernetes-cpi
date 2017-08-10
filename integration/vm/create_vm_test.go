@@ -11,6 +11,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
+	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/pkg/util/intstr"
 )
 
 const configPath = "integration/test_assets/cpi_methods/config.json"
@@ -49,6 +51,11 @@ var _ = Describe("Creating a VM", func() {
 
 		tmpConfigPath, err = testHelper.CreateTmpConfigFile(rootTemplatePath, configPath, kubeConfig)
 		Expect(err).ToNot(HaveOccurred())
+
+		numberOfPods, err := testHelper.PodCount("integration")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(numberOfPods).To(Equal(0))
+
 	})
 
 	AfterEach(func() {
@@ -268,5 +275,117 @@ var _ = Describe("Creating a VM", func() {
 				return int(numberOfReplicas)
 			}, "10s").Should(Equal(numReplicasInput))
 		})
+	})
+
+	Describe("Creating an Ingress Service", func() {
+		numReplicasInput := 1
+
+		BeforeEach(func() {
+			replacementMap["replicas"] = fmt.Sprintf("\"replicas\": %v,", numReplicasInput)
+			jsonPayload, err = testHelper.GenerateCpiJsonPayload("create-ingress", rootTemplatePath, replacementMap)
+			//fmt.Fprintln(os.Stderr, "PAYLOAD: ", jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			numberOfServices, err := testHelper.ServiceCount("integration")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(numberOfServices).To(Equal(0))
+
+			numberOfIngresses, err := testHelper.IngressCount("integration")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(numberOfIngresses).To(Equal(0))
+		})
+
+		AfterEach(func() {
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc,ing", "--all")
+			err = deleteAll.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() int {
+				pc, _ := testHelper.PodCount("integration")
+				return pc
+			}, "20s").Should(Equal(0))
+
+			deleteCM := exec.Command("kubectl", "delete", "configmap", "--all", "-n", "integration")
+			err = deleteCM.Run()
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(func() int {
+				sc, _ := testHelper.ServiceCount("integration")
+				return sc
+			}, "20s").Should(Equal(0))
+		})
+
+		It("Returns a valid result", func() {
+			var outputBytes []byte
+			outputBytes, err = testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			//fmt.Fprintln(os.Stderr, "OUTPUT: ", string(outputBytes))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(outputBytes, &resultOutput)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resultOutput["result"]).ToNot(BeNil())
+			Expect(resultOutput["error"]).To(BeNil())
+
+			id := resultOutput["result"].(string)
+			Expect(id).Should(ContainSubstring(clusterName))
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Creates the services with correct type and port", func() {
+			_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			Eventually(func() int {
+				numberOfServices, err := testHelper.ServiceCount("integration")
+				Expect(err).NotTo(HaveOccurred())
+				return numberOfServices
+			}, "10s").Should(Equal(1))
+
+			nginxService, err := testHelper.GetServiceByName("integration", "nginx")
+			Expect(err).NotTo(HaveOccurred())
+			//Expect(string(directorService.Spec.Type)).To(Equal("LoadBalancer"))
+			Expect(int(nginxService.Spec.Ports[0].Port)).To(Equal(80))
+
+			Eventually(func() int {
+				numberOfIngresses, err := testHelper.IngressCount("integration")
+				Expect(err).NotTo(HaveOccurred())
+				return numberOfIngresses
+			}, "40s").Should(Equal(2))
+
+			ingress1Ingress, err := testHelper.GetIngressByName("integration", "ingress1")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ingress1Ingress.Spec.Backend.ServiceName).To(Equal("nginx"))
+			Expect(ingress1Ingress.Spec.Backend.ServicePort).To(Equal(intstr.FromInt(80)))
+
+			ingress2Ingress, err := testHelper.GetIngressByName("integration", "ingress2")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ingress2Ingress.Spec.TLS).To(ConsistOf(
+				v1beta1.IngressTLS{
+					Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
+					SecretName: "apoorv-dev3",
+				},
+			))
+			Expect(ingress2Ingress.Spec.Rules).To(ConsistOf(
+				v1beta1.IngressRule{
+					Host: "apoorv-dev3.eu-central.containers.mybluemix.net",
+					IngressRuleValue: v1beta1.IngressRuleValue{
+						HTTP: &v1beta1.HTTPIngressRuleValue{
+							Paths: []v1beta1.HTTPIngressPath{
+								{
+									Path: "/",
+									Backend: v1beta1.IngressBackend{
+										ServiceName: "nginx",
+										ServicePort: intstr.FromInt(80),
+									},
+								},
+							},
+						},
+					},
+				},
+			))
+
+			statusCode, err := testHelper.GetHTTPStatusCode("http://" + ingress2Ingress.Spec.Rules[0].Host + ingress2Ingress.Spec.Rules[0].IngressRuleValue.HTTP.Paths[0].Path)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statusCode).To(Equal(200))
+		})
+
 	})
 })

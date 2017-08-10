@@ -28,13 +28,16 @@ type VMCreator struct {
 }
 
 type Service struct {
-	Name           string            `json:"name"`
-	Type           string            `json:"type"`
-	ClusterIP      string            `json:"cluster_ip"`
-	Ports          []Port            `json:"ports"`
-	Selector       map[string]string `json:"selector"`
-	LoadBalancerIP string            `json:"load_balancer_ip"`
-	ExternalIPs    []string          `json:"external_ips"`
+	Name           string                  `json:"name"`
+	Type           string                  `json:"type"`
+	ClusterIP      string                  `json:"cluster_ip"`
+	Ports          []Port                  `json:"ports"`
+	Selector       map[string]string       `json:"selector"`
+	LoadBalancerIP string                  `json:"load_balancer_ip"`
+	ExternalIPs    []string                `json:"external_ips"`
+	Backend        *v1beta1.IngressBackend `json:"backend"`
+	TLS            []v1beta1.IngressTLS    `json:"tls"`
+	Rules          []v1beta1.IngressRule   `json:"rules"`
 }
 
 type Port struct {
@@ -44,6 +47,34 @@ type Port struct {
 	Protocol   string `json:"protocol"`
 	TargetPort int    `json:"target_port"`
 }
+
+/*type Backend struct {
+	ServiceName string `json:"serviceName"`
+	ServicePort string `json:"servicePort"`
+}
+
+type TLS struct {
+	Hosts      []string `json:"hosts"`
+	SecretName string   `json:"secretName"`
+}
+
+type Rules struct {
+	Host             string `json:"host"`
+	IngressRuleValue `json:",inline,omitempty"`
+}
+
+type IngressRuleValue struct {
+	HTTP *HTTPIngressRuleValue `json:"http,omitempty"`
+}
+
+type HTTPIngressRuleValue struct {
+	Paths []Path `json:"paths"`
+}
+
+type Path struct {
+	Path    string  `json:"path,omitempty"`
+	Backend Backend `json:"backend"`
+}*/
 
 type ResourceName string
 
@@ -111,7 +142,7 @@ func (v *VMCreator) Create(
 	}
 
 	// create the service
-	err = createServices(client.Services(), ns, agentID, cloudProps.Services)
+	err = createServices(client, ns, agentID, cloudProps.Services)
 	if err != nil {
 		return "", err
 	}
@@ -217,9 +248,9 @@ func createConfigMap(configMapService core.ConfigMapInterface, ns, agentID strin
 	})
 }
 
-func createServices(serviceClient core.ServiceInterface, ns, agentID string, services []Service) error {
+func createServices(client kubecluster.Client, ns, agentID string, services []Service) error {
+	var err error
 	for _, svc := range services {
-		var service *v1.Service
 		var serviceType v1.ServiceType
 		var lock *sync.Mutex = &sync.Mutex{}
 
@@ -231,7 +262,6 @@ func createServices(serviceClient core.ServiceInterface, ns, agentID string, ser
 		case "LoadBalancer":
 			serviceType = v1.ServiceTypeLoadBalancer
 		}
-
 		var ports []v1.ServicePort
 		for _, port := range svc.Ports {
 			port := v1.ServicePort{
@@ -244,47 +274,58 @@ func createServices(serviceClient core.ServiceInterface, ns, agentID string, ser
 			ports = append(ports, port)
 		}
 
-		service = &v1.Service{
-			ObjectMeta: v1.ObjectMeta{
-				Name:      svc.Name,
-				Namespace: ns,
-				Labels: map[string]string{
-					"bosh.cloudfoundry.org/agent-id": agentID,
-				},
-			},
-			Spec: v1.ServiceSpec{
-				Type:        serviceType,
-				ClusterIP:   svc.ClusterIP,
-				Ports:       ports,
-				ExternalIPs: svc.ExternalIPs,
-			},
-		}
-
-		if len(svc.Selector) != 0 {
-			service.Spec.Selector = svc.Selector
-		} else {
-			service.Spec.Selector = map[string]string{
+		objectMeta := v1.ObjectMeta{
+			Name:      svc.Name,
+			Namespace: ns,
+			Labels: map[string]string{
 				"bosh.cloudfoundry.org/agent-id": agentID,
+			},
+		}
+
+		if svc.Type == "Ingress" {
+			service := &v1beta1.Ingress{
+				ObjectMeta: objectMeta,
+				Spec: v1beta1.IngressSpec{
+					Backend: svc.Backend,
+					TLS:     svc.TLS,
+					Rules:   svc.Rules,
+				},
 			}
-		}
+			_, err = client.IngressService().Create(service)
+		} else {
+			service := &v1.Service{
+				ObjectMeta: objectMeta,
+				Spec: v1.ServiceSpec{
+					Type:        serviceType,
+					ClusterIP:   svc.ClusterIP,
+					Ports:       ports,
+					ExternalIPs: svc.ExternalIPs,
+				},
+			}
 
-		if serviceType == v1.ServiceTypeLoadBalancer && len(svc.LoadBalancerIP) != 0 {
-			service.Spec.LoadBalancerIP = svc.LoadBalancerIP
-		}
+			if service.Spec.Type == v1.ServiceTypeLoadBalancer && len(svc.LoadBalancerIP) != 0 {
+				service.Spec.LoadBalancerIP = svc.LoadBalancerIP
+			}
 
-		// create the service when it doesn't exist
-		if _, err := serviceClient.Get(svc.Name); err != nil {
-			lock.Lock()
-			if _, err := serviceClient.Get(svc.Name); err != nil {
-				_, err := serviceClient.Create(service)
-				if err != nil {
-					return err
+			if len(svc.Selector) != 0 {
+				service.Spec.Selector = svc.Selector
+			} else {
+				service.Spec.Selector = map[string]string{
+					"bosh.cloudfoundry.org/agent-id": agentID,
 				}
+			}
+
+			lock.Lock()
+			if _, err = client.Services().Get(svc.Name); err != nil {
+				_, err = client.Services().Create(service)
 			}
 			lock.Unlock()
 		}
-	}
 
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -1,0 +1,75 @@
+{
+    "method": "create_vm",
+    "arguments": [
+        "{{ .AgentID }}",
+        "sykesm/kubernetes-stemcell:3312",
+        {
+            {{ .Replicas }}
+            "context": "{{ .Context }}",
+            "resources": {
+                "limits": {
+                    "memory": "1Gi"
+                },
+                "requests": {
+                    "memory": "64Mi"
+                }
+            },
+            "services": [
+                {
+                    "name": "nginx",
+                    "ports": [{
+                        "port": 80,
+                        "protocol": "TCP"
+                    }]
+                },
+                {
+                    "name": "ingress1",
+                    "type": "Ingress",
+                    "backend": {
+                        "serviceName": "nginx",
+                        "servicePort": 80
+                    }  
+                },
+                {
+                    "name": "ingress2",
+                    "type": "Ingress",
+                    "tls": [{
+                        "hosts": ["apoorv-dev3.eu-central.containers.mybluemix.net"],
+                        "secretName": "{{ .Context }}"
+                    }],
+                    "rules": [{
+                        "host":"apoorv-dev3.eu-central.containers.mybluemix.net",
+                        "http": {
+                            "paths": [{
+                                "path": "/",
+                                "backend": {
+                                  "serviceName": "nginx",
+                                  "servicePort": 80
+                                }
+                            }]
+                        }
+                    }]
+                }
+            ]
+        },
+        {
+            "default": {
+                "cloud_properties": {},
+                "default": [
+                    "dns",
+                    "gateway"
+                ],
+                "dns": [
+                    "10.10.10.10",
+                    "10.10.10.50"
+                ],
+                "type": "dynamic"
+            }
+        },
+        [],
+        {}
+    ],
+    "context": {
+        "director_uuid": "director-id"
+    }
+}

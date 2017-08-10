@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/runtime"
+	"k8s.io/client-go/pkg/util/intstr"
 	"k8s.io/client-go/testing"
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
@@ -17,10 +18,11 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
-	"k8s.io/client-go/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"fmt"
 )
 
 var _ = Describe("CreateVM", func() {
@@ -284,7 +286,7 @@ var _ = Describe("CreateVM", func() {
 		})
 
 		Context("when service definitions are present in the cloud properties", func() {
-			var service1, service2, service3, service4, service5, service6 actions.Service
+			var service1, service2, service3, service4, service5, service6, service7, service8, service9 actions.Service
 			BeforeEach(func() {
 				service1 = actions.Service{
 					Name: "director",
@@ -340,7 +342,55 @@ var _ = Describe("CreateVM", func() {
 					ExternalIPs: []string{"158.10.10.10", "158.10.10.11"},
 				}
 
-				cloudProps.Services = []actions.Service{service1, service2, service3, service4, service5, service6}
+				service7 = actions.Service{
+					Name: "nginx",
+					Selector: map[string]string{
+						"app": "nginx",
+					},
+					Ports: []actions.Port{
+						{Port: 80},
+					},
+				}
+
+				service8 = actions.Service{
+					Name: "ingress1",
+					Type: "Ingress",
+					Backend: &v1beta1.IngressBackend{
+						ServiceName: "nginx",
+						ServicePort: intstr.FromInt(80),
+					},
+				}
+
+				service9 = actions.Service{
+					Name: "ingress2",
+					Type: "Ingress",
+					TLS: []v1beta1.IngressTLS{
+						{
+							Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
+							SecretName: "apoorv-dev3",
+						},
+					},
+					Rules: []v1beta1.IngressRule{
+						{
+							Host: "apoorv-dev3.eu-central.containers.mybluemix.net",
+							IngressRuleValue: v1beta1.IngressRuleValue{
+								HTTP: &v1beta1.HTTPIngressRuleValue{
+									Paths: []v1beta1.HTTPIngressPath{
+										{
+											Path: "/",
+											Backend: v1beta1.IngressBackend{
+												ServiceName: "nginx",
+												ServicePort: intstr.FromInt(80),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				}
+
+				cloudProps.Services = []actions.Service{service1, service2, service3, service4, service5, service6, service7, service8, service9}
 			})
 
 			It("creates the services", func() {
@@ -348,7 +398,7 @@ var _ = Describe("CreateVM", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				matches := fakeClient.MatchingActions("create", "services")
-				Expect(matches).To(HaveLen(6))
+				Expect(matches).To(HaveLen(7))
 
 				service := matches[0].(testing.CreateAction).GetObject().(*v1.Service)
 				Expect(service.Name).To(Equal("director"))
@@ -410,6 +460,57 @@ var _ = Describe("CreateVM", func() {
 					v1.ServicePort{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: intstr.FromInt(443)},
 				))
 				Expect(service.Spec.ExternalIPs).To(Equal([]string{"158.10.10.10", "158.10.10.11"}))
+
+				service = matches[6].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("nginx"))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeClusterIP))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Port: 80},
+				))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"app": "nginx"}))
+
+				omatches := fakeClient.MatchingActions("create", "ingresses")
+				fmt.Println(len(omatches))
+				Expect(omatches).To(HaveLen(2))
+
+				fmt.Println(omatches[0].GetResource())
+				iService := omatches[0].(testing.CreateAction).GetObject().(*v1beta1.Ingress)
+
+				Expect(iService.Name).To(Equal("ingress1"))
+				//Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				//Expect(iService.Spec.Type).To(Equal("Ingress"))
+				Expect(*iService.Spec.Backend).To(Equal(
+					v1beta1.IngressBackend{ServiceName: "nginx", ServicePort: intstr.FromInt(80)},
+				))
+
+				iService = omatches[1].(testing.CreateAction).GetObject().(*v1beta1.Ingress)
+				Expect(iService.Name).To(Equal("ingress2"))
+				//Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				//Expect(service.Spec.Type).To(Equal("Ingress"))
+				Expect(iService.Spec.TLS).To(ConsistOf(
+					v1beta1.IngressTLS{
+						Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
+						SecretName: "apoorv-dev3",
+					},
+				))
+				Expect(iService.Spec.Rules).To(ConsistOf(
+					v1beta1.IngressRule{
+						Host: "apoorv-dev3.eu-central.containers.mybluemix.net",
+						IngressRuleValue: v1beta1.IngressRuleValue{
+							HTTP: &v1beta1.HTTPIngressRuleValue{
+								Paths: []v1beta1.HTTPIngressPath{
+									{
+										Path: "/",
+										Backend: v1beta1.IngressBackend{
+											ServiceName: "nginx",
+											ServicePort: intstr.FromInt(80),
+										},
+									},
+								},
+							},
+						},
+					},
+				))
 			})
 
 			Context("when the service create fails", func() {
@@ -529,7 +630,7 @@ var _ = Describe("CreateVM", func() {
 				}
 			})
 
-			It("sets resource limts and requests on the Pod", func() {
+			It("sets resource limits and requests on the Pod", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
 				Expect(err).NotTo(HaveOccurred())
 

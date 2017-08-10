@@ -55,10 +55,16 @@ func (c *Client) Deployments() extensions.DeploymentInterface {
 	return c.Extensions().Deployments(c.Namespace())
 }
 
+func (c *Client) IngressService() extensions.IngressInterface {
+	return c.Extensions().Ingresses(c.Namespace())
+}
+
 func (c *Client) MatchingActions(verb, resource string) []testing.Action {
 	result := []testing.Action{}
+	//fmt.Println("apoorv:", c.Actions())
 	for _, action := range c.Actions() {
 		// DEBUG
+		//fmt.Println("action:", action)
 		if action.Matches(verb, resource) {
 			result = append(result, action)
 		}

@@ -51,6 +51,7 @@ func (k Kubernetes) ClientConfig() clientcmdapi.Config {
 }
 
 func (a *AuthInfo) api() *clientcmdapi.AuthInfo {
+
 	info := clientcmdapi.NewAuthInfo()
 	info.Token = a.Token
 	info.Username = a.Username
@@ -61,6 +62,7 @@ func (a *AuthInfo) api() *clientcmdapi.AuthInfo {
 	if len(a.ClientKeyData) != 0 {
 		info.ClientKeyData = []byte(a.ClientKeyData)
 	}
+
 	if len(a.AuthProvider) > 0 {
 		authProvider := &clientcmdapi.AuthProviderConfig{
 			Name: a.AuthProvider,

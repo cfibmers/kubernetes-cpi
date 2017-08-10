@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -188,7 +189,7 @@ func RunCpi(rootCpiPath string, configPath string, agentPath string, jsonPayload
 	cmd.Stderr = &errbuf
 	output, err := cmd.Output()
 	if err != nil {
-		return []byte{}, err
+		return output, err
 	}
 
 	return output, nil
@@ -507,4 +508,60 @@ func GetPodListByAgentId(namespace string, agentId string) (v1.PodList, error) {
 	}
 
 	return pods, nil
+}
+
+func IngressCount(namespace string) (int, error) {
+	var ingresses v1beta1.IngressList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "ing", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&ingresses); err != nil {
+		return 0, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return 0, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return len(ingresses.Items), nil
+}
+
+func GetIngressByName(namespace string, ingressName string) (v1beta1.Ingress, error) {
+	var ingress = v1beta1.Ingress{}
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "ing", ingressName, "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return ingress, err
+	}
+	if err := cmd.Start(); err != nil {
+		return ingress, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&ingress); err != nil {
+		return ingress, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return ingress, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return ingress, nil
+}
+
+func GetHTTPStatusCode(url string) (int, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return 500, err
+	}
+
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
 }

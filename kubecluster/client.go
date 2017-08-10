@@ -18,6 +18,7 @@ type Client interface {
 	Pods() core.PodInterface
 	Deployments() v1beta1.DeploymentInterface
 	Services() core.ServiceInterface
+	IngressService() v1beta1.IngressInterface
 }
 
 type client struct {
@@ -59,4 +60,8 @@ func (c *client) Deployments() v1beta1.DeploymentInterface {
 
 func (c *client) Services() core.ServiceInterface {
 	return c.Core().Services(c.namespace)
+}
+
+func (c *client) IngressService() v1beta1.IngressInterface {
+	return c.Extensions().Ingresses(c.namespace)
 }
