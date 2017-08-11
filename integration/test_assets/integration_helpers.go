@@ -84,26 +84,9 @@ func ConnectCluster() error {
 		return errors.New("BX_API must be set")
 	}
 
-	// optional api key
 	bxAPIKey := os.Getenv("BX_API_KEY")
-
-	// if the api key is provided, no username is required; however, one or the other must be set
-	bxUsername := os.Getenv("BX_USERNAME")
-	if bxUsername == "" && bxAPIKey == "" {
-		return errors.New("BX_API_KEY or BX_USERNAME must be set")
-	}
-
-	// if the api key is provided, no password is required; however, one or the other must be set
-	bxPassword := os.Getenv("BX_PASSWORD")
-	if bxAPIKey == "" && bxPassword == "" {
-		return errors.New("BX_API_KEY or BX_PASSWORD must be set")
-	}
-
-	// if the api key is provided, no acct id is required;
-	// however, one or the other must be set (and both may be set)
-	bxAccountID := os.Getenv("BX_ACCOUNTID")
-	if bxAPIKey == "" && bxAccountID == "" {
-		return errors.New("BX_API_KEY or BX_ACCOUNTID must be set")
+	if bxAPIKey == "" {
+		return errors.New("BX_API_KEY must be set")
 	}
 
 	clusterName := os.Getenv("CLUSTER_NAME")
@@ -121,22 +104,8 @@ func ConnectCluster() error {
 		return errors.New("SL_API_KEY must be set")
 	}
 
-	loginArgs := []string{"login", "-a", bxAPI}
-
-	// If an account ID is provided, use that. However, if an API key is used,
-	// an account might already be associated with that key.
-	if bxAccountID != "" {
-		loginArgs = append(loginArgs, "-c", bxAccountID)
-	}
-
-	if bxAPIKey != "" {
-		loginArgs = append(loginArgs, "--apikey", bxAPIKey)
-	} else {
-		loginArgs = append(loginArgs, "-u", bxUsername, "-p", bxPassword, "-c", bxAccountID)
-	}
-
 	// Log in to the Bluemix CLI.
-	loginBX := exec.Command("bx", loginArgs...)
+	loginBX := exec.Command("bx", "login", "-a", bxAPI, "--apikey", bxAPIKey)
 
 	err := loginBX.Run()
 	if err != nil {

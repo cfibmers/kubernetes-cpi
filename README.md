@@ -67,25 +67,10 @@ SWEET SUITE SUCCESS
 
 
 ```
-$ cat integration/env
-export BX_API="{bluemix-api}"
-export BX_USERNAME="{bluemix-user-name}"
-export BX_PASSWORD="{bluemix-password}"
-# Optionally supply BX_API_KEY (you must do this if your ID is federated). BX_USERNAME and BX_PASSWORD are not needed in that case, but you must supply one or the other.
-# API keys can be associated with an account. If supplying an API key and it is not associated with an account, supply BX_ACCOUNTID.
-# BX_ACCOUNTID must be supplied if using username and password.
-export BX_ACCOUNTID="{bluemix-account}"
-export CLUSTER_NAME="{existed-cluster}"
-export SL_USERNAME="{softlayer-username}"
-export SL_API_KEY="{softlayer-api-key}"
-
 # example integration/env file
 $ cat integration/env
 export BX_API="api.ng.bluemix.net"
-export BX_USERNAME="zhanggbj"
-export BX_PASSWORD="password"
-# export BX_API_KEY="abc"
-export BX_ACCOUNTID="12345678910027ca24sdd12345678910"
+export BX_API_KEY="abc"
 export CLUSTER_NAME="cluster_integration"
 export SL_USERNAME="zhanggbj"
 export SL_API_KEY="12345678910570d12e2149b3fd12345678910499b34351a8db2512345678910"

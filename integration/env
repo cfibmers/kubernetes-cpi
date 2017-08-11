@@ -1,18 +1,11 @@
 # Integration config example
 
-# Bluemix env API endpoint
+# Bluemix API endpoint
 export BX_API="api.foo.bar"
-# Bluemix user name (can be empty if using BX_API_KEY)
-export BX_USERNAME="blah@blah.com"
-# BX_API_KEY is required if your ID is federated
 export BX_API_KEY="def"
-# Bluemix password (can be empty if using BX_API_KEY)
-export BX_PASSWORD="abc"
-# Bluemix user's *BSS* acct (can be empty if using an API key that is associated with an account)
-export BX_ACCOUNTID="123"
 # k8s cluster name
 export CLUSTER_NAME="my-cluster"
-# Softlayer acct user name, typically starts with the SL acct number
+# Softlayer account username, typically starts with the SL account number
 export SL_USERNAME="123_me@me.com"
-# Softlayer API key token
+# Softlayer API key
 export SL_API_KEY="456"
