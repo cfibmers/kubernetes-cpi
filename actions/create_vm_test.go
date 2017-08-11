@@ -17,6 +17,7 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
+	"k8s.io/client-go/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +45,7 @@ var _ = Describe("CreateVM", func() {
 		fakeProvider.NewReturns(fakeClient, nil)
 
 		agentConf = &config.Agent{
-			Blobstore:  "some-blbostore-config",
+			Blobstore:  "some-blobstore-config",
 			MessageBus: "message-bus-url",
 			NTPServers: []string{"1.example.org", "2.example.org"},
 		}
@@ -283,7 +284,7 @@ var _ = Describe("CreateVM", func() {
 		})
 
 		Context("when service definitions are present in the cloud properties", func() {
-			var service1, service2, service3, service4 actions.Service
+			var service1, service2, service3, service4, service5, service6 actions.Service
 			BeforeEach(func() {
 				service1 = actions.Service{
 					Name: "director",
@@ -319,7 +320,27 @@ var _ = Describe("CreateVM", func() {
 					},
 				}
 
-				cloudProps.Services = []actions.Service{service1, service2, service3, service4}
+				service5 = actions.Service{
+					Name: "ha-proxy-80",
+					Type: "LoadBalancer",
+					Ports: []actions.Port{
+						{Name: "ha-proxy-80", Protocol: "TCP", Port: 80, NodePort: 30080, TargetPort: 80},
+					},
+					Selector:       map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
+					LoadBalancerIP: "169.10.10.10",
+				}
+
+				service6 = actions.Service{
+					Name: "ha-proxy-443",
+					Type: "NodePort",
+					Ports: []actions.Port{
+						{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: 443},
+					},
+					Selector:    map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
+					ExternalIPs: []string{"158.10.10.10", "158.10.10.11"},
+				}
+
+				cloudProps.Services = []actions.Service{service1, service2, service3, service4, service5, service6}
 			})
 
 			It("creates the services", func() {
@@ -327,7 +348,7 @@ var _ = Describe("CreateVM", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				matches := fakeClient.MatchingActions("create", "services")
-				Expect(matches).To(HaveLen(4))
+				Expect(matches).To(HaveLen(6))
 
 				service := matches[0].(testing.CreateAction).GetObject().(*v1.Service)
 				Expect(service.Name).To(Equal("director"))
@@ -368,6 +389,27 @@ var _ = Describe("CreateVM", func() {
 				Expect(service.Spec.Ports).To(ConsistOf(
 					v1.ServicePort{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
 				))
+
+				service = matches[4].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("ha-proxy-80"))
+				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
+				Expect(len(service.Spec.ClusterIP)).To(Equal(0))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"}))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Name: "ha-proxy-80", Protocol: "TCP", Port: 80, NodePort: 30080, TargetPort: intstr.FromInt(80)},
+				))
+				Expect(service.Spec.LoadBalancerIP).To(Equal("169.10.10.10"))
+
+				service = matches[5].(testing.CreateAction).GetObject().(*v1.Service)
+				Expect(service.Name).To(Equal("ha-proxy-443"))
+				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeNodePort))
+				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"}))
+				Expect(service.Spec.Ports).To(ConsistOf(
+					v1.ServicePort{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: intstr.FromInt(443)},
+				))
+				Expect(service.Spec.ExternalIPs).To(Equal([]string{"158.10.10.10", "158.10.10.11"}))
 			})
 
 			Context("when the service create fails", func() {

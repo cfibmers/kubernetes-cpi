@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/util/intstr"
 	api "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
@@ -26,17 +28,21 @@ type VMCreator struct {
 }
 
 type Service struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`
-	ClusterIP string `json:"cluster_ip"`
-	Ports     []Port `json:"ports"`
+	Name           string            `json:"name"`
+	Type           string            `json:"type"`
+	ClusterIP      string            `json:"cluster_ip"`
+	Ports          []Port            `json:"ports"`
+	Selector       map[string]string `json:"selector"`
+	LoadBalancerIP string            `json:"load_balancer_ip"`
+	ExternalIPs    []string          `json:"external_ips"`
 }
 
 type Port struct {
-	Name     string `json:"name"`
-	NodePort int32  `json:"node_port"`
-	Port     int32  `json:"port"`
-	Protocol string `json:"protocol"`
+	Name       string `json:"name"`
+	NodePort   int32  `json:"node_port"`
+	Port       int32  `json:"port"`
+	Protocol   string `json:"protocol"`
+	TargetPort int    `json:"target_port"`
 }
 
 type ResourceName string
@@ -213,7 +219,10 @@ func createConfigMap(configMapService core.ConfigMapInterface, ns, agentID strin
 
 func createServices(serviceClient core.ServiceInterface, ns, agentID string, services []Service) error {
 	for _, svc := range services {
+		var service *v1.Service
 		var serviceType v1.ServiceType
+		var lock *sync.Mutex = &sync.Mutex{}
+
 		switch svc.Type {
 		default:
 			serviceType = v1.ServiceTypeClusterIP
@@ -226,15 +235,16 @@ func createServices(serviceClient core.ServiceInterface, ns, agentID string, ser
 		var ports []v1.ServicePort
 		for _, port := range svc.Ports {
 			port := v1.ServicePort{
-				Name:     port.Name,
-				Protocol: v1.Protocol(port.Protocol),
-				Port:     port.Port,
-				NodePort: port.NodePort,
+				Name:       port.Name,
+				Protocol:   v1.Protocol(port.Protocol),
+				Port:       port.Port,
+				NodePort:   port.NodePort,
+				TargetPort: intstr.FromInt(port.TargetPort),
 			}
 			ports = append(ports, port)
 		}
 
-		service := &v1.Service{
+		service = &v1.Service{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      svc.Name,
 				Namespace: ns,
@@ -243,18 +253,35 @@ func createServices(serviceClient core.ServiceInterface, ns, agentID string, ser
 				},
 			},
 			Spec: v1.ServiceSpec{
-				Type:      serviceType,
-				ClusterIP: svc.ClusterIP,
-				Ports:     ports,
-				Selector: map[string]string{
-					"bosh.cloudfoundry.org/agent-id": agentID,
-				},
+				Type:        serviceType,
+				ClusterIP:   svc.ClusterIP,
+				Ports:       ports,
+				ExternalIPs: svc.ExternalIPs,
 			},
 		}
 
-		_, err := serviceClient.Create(service)
-		if err != nil {
-			return err
+		if len(svc.Selector) != 0 {
+			service.Spec.Selector = svc.Selector
+		} else {
+			service.Spec.Selector = map[string]string{
+				"bosh.cloudfoundry.org/agent-id": agentID,
+			}
+		}
+
+		if serviceType == v1.ServiceTypeLoadBalancer && len(svc.LoadBalancerIP) != 0 {
+			service.Spec.LoadBalancerIP = svc.LoadBalancerIP
+		}
+
+		// create the service when it doesn't exist
+		if _, err := serviceClient.Get(svc.Name); err != nil {
+			lock.Lock()
+			if _, err := serviceClient.Get(svc.Name); err != nil {
+				_, err := serviceClient.Create(service)
+				if err != nil {
+					return err
+				}
+			}
+			lock.Unlock()
 		}
 	}
 

@@ -1,88 +1,134 @@
 {
-    "method": "create_vm",
-    "arguments": [
-        "{{ .AgentID }}",
-        "sykesm/kubernetes-stemcell:3312",
-        {
-            {{ .Replicas }}
-            "context": "{{ .Context }}",
-            "resources": {
-                "limits": {
-                    "memory": "1Gi"
-                },
-                "requests": {
-                    "memory": "64Mi"
-                }
-            },
-            "services": [{
-                    "name": "agent1",
-                    "ports": [{
-                        "name": "agent1",
-                        "node_port": 32323,
-                        "port": 6868,
-                        "protocol": "TCP"
-                    }],
-                    "type": "NodePort"
-                },
-                {
-                    "name": "director1",
-                    "ports": [{
-                        "name": "director1",
-                        "node_port": 32324,
-                        "port": 25555,
-                        "protocol": "TCP"
-                    }],
-                    "type": "LoadBalancer"
-                },
-                {
-                    "name": "blobstore1",
-                    "ports": [{
-                        "port": 25251,
-                        "protocol": "TCP"
-                    }]
-                },
-                {
-                    "cluster_ip": "",
-                    "name": "bosh-dns1",
-                    "ports": [{
-                            "name": "dns-tcp1",
-                            "port": 53,
-                            "protocol": "TCP"
-                        },
-                        {
-                            "name": "dns-udp1",
-                            "port": 53,
-                            "protocol": "UDP"
-                        }
-                    ]
-                },
-                {
-                    "name": "nats1",
-                    "ports": [{
-                        "port": 4223,
-                        "protocol": "TCP"
-                    }]
-                }
-            ]
+  "method": "create_vm",
+  "arguments": [
+    "{{ .AgentID }}",
+    "sykesm/kubernetes-stemcell:3312",
+    {
+      {{ .Replicas }}
+      "context": "{{ .Context }}",
+      "resources": {
+        "limits": {
+          "memory": "1Gi"
         },
+        "requests": {
+          "memory": "64Mi"
+        }
+      },
+      "services": [
         {
-            "default": {
-                "cloud_properties": {},
-                "default": [
-                    "dns",
-                    "gateway"
-                ],
-                "dns": [
-                    "10.10.10.10",
-                    "10.10.10.50"
-                ],
-                "type": "dynamic"
+          "name": "agent1",
+          "ports": [
+            {
+              "name": "agent1",
+              "node_port": 32323,
+              "port": 6868,
+              "protocol": "TCP"
             }
+          ],
+          "type": "NodePort"
         },
-        [],
-        {}
-    ],
-    "context": {
-        "director_uuid": "director-id"
-    }
+        {
+          "name": "director1",
+          "ports": [
+            {
+              "name": "director1",
+              "node_port": 32324,
+              "port": 25555,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "LoadBalancer"
+        },
+        {
+          "name": "blobstore1",
+          "ports": [
+            {
+              "port": 25251,
+              "protocol": "TCP"
+            }
+          ]
+        },
+        {
+          "cluster_ip": "",
+          "name": "bosh-dns1",
+          "ports": [
+            {
+              "name": "dns-tcp1",
+              "port": 53,
+              "protocol": "TCP"
+            },
+            {
+              "name": "dns-udp1",
+              "port": 53,
+              "protocol": "UDP"
+            }
+          ]
+        },
+        {
+          "name": "nats1",
+          "ports": [
+            {
+              "port": 4223,
+              "protocol": "TCP"
+            }
+          ]
+        },
+        {
+          "name": "ha-proxy-1",
+          "selector": {
+            "bosh.cloudfoundry.org/job": "ha_proxy_z1"
+          },
+          "ports": [
+            {
+              "name": "ha-proxy-1",
+              "target_port": 80,
+              "port": 80,
+              "node_port": 30080,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "LoadBalancer"
+        },
+        {
+          "name": "ha-proxy-2",
+          "selector": {
+            "bosh.cloudfoundry.org/job": "ha_proxy_z1"
+          },
+          "ports": [
+            {
+              "name": "ha-proxy-2",
+              "target_port": 443,
+              "port": 443,
+              "node_port": 30443,
+              "protocol": "TCP"
+            }
+          ],
+          "type": "NodePort",
+          "external_ips": [
+            "158.10.10.10",
+            "158.10.10.11"
+          ]
+        }
+      ]
+    },
+    {
+      "default": {
+        "cloud_properties": {},
+        "default": [
+          "dns",
+          "gateway"
+        ],
+        "dns": [
+          "10.10.10.10",
+          "10.10.10.50"
+        ],
+        "type": "dynamic"
+      }
+    },
+    [],
+    {}
+  ],
+  "context": {
+    "director_uuid": "director-id"
+  }
 }

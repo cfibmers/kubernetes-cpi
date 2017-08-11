@@ -109,7 +109,7 @@ var _ = Describe("Creating a VM", func() {
 				numberOfPods, err = testHelper.PodCount("integration")
 				Expect(err).NotTo(HaveOccurred())
 				return numberOfPods
-			}, "10s").Should(Equal(1))
+			}, "30s").Should(Equal(1))
 		})
 
 		Context("When there are services in the cloud properties", func() {
@@ -132,7 +132,7 @@ var _ = Describe("Creating a VM", func() {
 					numberOfPods, err = testHelper.PodCount("integration")
 					Expect(err).NotTo(HaveOccurred())
 					return numberOfPods
-				}, "10s").Should(Equal(1))
+				}, "30s").Should(Equal(1))
 			})
 
 			It("Creates the services with correct type and port", func() {
@@ -143,7 +143,7 @@ var _ = Describe("Creating a VM", func() {
 					numberOfServices, err = testHelper.ServiceCount("integration")
 					Expect(err).NotTo(HaveOccurred())
 					return numberOfServices
-				}, "10s").Should(Equal(5))
+				}, "30s").Should(Equal(7))
 
 				directorService, err := testHelper.GetServiceByName("integration", "director1")
 				Expect(err).NotTo(HaveOccurred())
@@ -158,6 +158,23 @@ var _ = Describe("Creating a VM", func() {
 				blobstoreService, err := testHelper.GetServiceByName("integration", "blobstore1")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(blobstoreService.Spec.Type)).To(Equal("ClusterIP"))
+
+				haproxyService1, err := testHelper.GetServiceByName("integration", "ha-proxy-1")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(haproxyService1.Spec.Type)).To(Equal("LoadBalancer"))
+				Expect(int(haproxyService1.Spec.Ports[0].NodePort)).To(Equal(30080))
+				Expect(haproxyService1.Spec.Selector).To(Equal(map[string]string{
+					"bosh.cloudfoundry.org/job": "ha_proxy_z1",
+				}))
+
+				haproxyService2, err := testHelper.GetServiceByName("integration", "ha-proxy-2")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(haproxyService2.Spec.Type)).To(Equal("NodePort"))
+				Expect(int(haproxyService2.Spec.Ports[0].NodePort)).To(Equal(30443))
+				Expect(haproxyService2.Spec.Selector).To(Equal(map[string]string{
+					"bosh.cloudfoundry.org/job": "ha_proxy_z1",
+				}))
+				Expect(haproxyService2.Spec.ExternalIPs).To(Equal([]string{"158.10.10.10", "158.10.10.11"}))
 			})
 		})
 

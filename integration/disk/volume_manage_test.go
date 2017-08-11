@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"fmt"
 
 	"fmt"
 	. "github.com/onsi/ginkgo"
