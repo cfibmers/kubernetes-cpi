@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
@@ -27,7 +28,6 @@ var _ = Describe("Disk and Volume Management", func() {
 		replacementMap                  map[string]string
 		resultOutput                    map[string]interface{}
 		numberOfPods                    int
-		//numberOfServices                int
 		pvcs                            v1.PersistentVolumeClaimList
 		diskID                          string
 		oriPod, newPod                  v1.Pod

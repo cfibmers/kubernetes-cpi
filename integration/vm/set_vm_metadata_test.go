@@ -27,7 +27,6 @@ var _ = Describe("set_vm_metadata", func() {
 
 	CreateVM := func() {
 		var numberOfPods int
-		var numberOfServices int
 
 		jsonPayload, err := testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
 		Expect(err).ToNot(HaveOccurred())
@@ -48,10 +47,6 @@ var _ = Describe("set_vm_metadata", func() {
 		numberOfPods, err = testHelper.PodCount("integration")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(numberOfPods).To(Equal(1))
-
-		numberOfServices, err = testHelper.ServiceCount("integration")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(numberOfServices).To(Equal(5))
 	}
 
 	BeforeEach(func() {

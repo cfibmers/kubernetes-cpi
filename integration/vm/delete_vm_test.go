@@ -25,8 +25,8 @@ var _ = Describe("Integration test for vm", func() {
 
 	CreateVM := func() {
 		var (
-			numberOfPods, numberOfServices int
-			outputBytes                    []byte
+			numberOfPods int
+			outputBytes  []byte
 		)
 
 		jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
@@ -48,10 +48,6 @@ var _ = Describe("Integration test for vm", func() {
 		numberOfPods, err = testHelper.PodCount("integration")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(numberOfPods).To(Equal(1))
-
-		numberOfServices, err = testHelper.ServiceCount("integration")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(numberOfServices).To(Equal(5))
 	}
 
 	BeforeEach(func() {
