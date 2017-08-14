@@ -27,7 +27,6 @@ var _ = Describe("Disk and Volume Management", func() {
 		replacementMap                  map[string]string
 		resultOutput                    map[string]interface{}
 		numberOfPods                    int
-		numberOfServices                int
 		pvcs                            v1.PersistentVolumeClaimList
 		diskID                          string
 		oriPod, newPod                  v1.Pod
@@ -60,10 +59,6 @@ var _ = Describe("Disk and Volume Management", func() {
 		numberOfPods, err = testHelper.PodCount("integration")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(numberOfPods).To(Equal(1))
-
-		numberOfServices, err = testHelper.ServiceCount("integration")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(numberOfServices).To(Equal(5))
 	}
 
 	CreateDisk := func() {
