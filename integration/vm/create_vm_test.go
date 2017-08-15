@@ -341,7 +341,6 @@ var _ = Describe("Creating a VM", func() {
 
 			nginxService, err := testHelper.GetServiceByName("integration", "nginx")
 			Expect(err).NotTo(HaveOccurred())
-			//Expect(string(directorService.Spec.Type)).To(Equal("LoadBalancer"))
 			Expect(int(nginxService.Spec.Ports[0].Port)).To(Equal(80))
 
 			Eventually(func() int {
@@ -360,7 +359,7 @@ var _ = Describe("Creating a VM", func() {
 			Expect(ingress2Ingress.Spec.TLS).To(ConsistOf(
 				v1beta1.IngressTLS{
 					Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
-					SecretName: "apoorv-dev3",
+					SecretName: clusterName,
 				},
 			))
 			Expect(ingress2Ingress.Spec.Rules).To(ConsistOf(

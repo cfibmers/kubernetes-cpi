@@ -286,101 +286,94 @@ var _ = Describe("CreateVM", func() {
 		})
 
 		Context("when service definitions are present in the cloud properties", func() {
-			var service1, service2, service3, service4, service5, service6, service7, service8, service9 actions.Service
 			BeforeEach(func() {
-				service1 = actions.Service{
-					Name: "director",
-					Type: "NodePort",
-					Ports: []actions.Port{
-						{Name: "agent", Protocol: "TCP", Port: 6868, NodePort: 32068},
-						{Name: "director", Protocol: "TCP", Port: 25555, NodePort: 32067},
-					},
-				}
-
-				service2 = actions.Service{
-					Name:      "blobstore",
-					ClusterIP: "10.0.0.1",
-					Ports: []actions.Port{
-						{Port: 25250, Protocol: "TCP"},
-					},
-				}
-
-				service3 = actions.Service{
-					Name:      "bosh-dns",
-					Type:      "LoadBalancer",
-					ClusterIP: "10.0.0.2",
-					Ports: []actions.Port{
-						{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
-					},
-				}
-
-				service4 = actions.Service{
-					Name: "bosh-dns-1",
-					Type: "LoadBalancer",
-					Ports: []actions.Port{
-						{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
-					},
-				}
-
-				service5 = actions.Service{
-					Name: "ha-proxy-80",
-					Type: "LoadBalancer",
-					Ports: []actions.Port{
-						{Name: "ha-proxy-80", Protocol: "TCP", Port: 80, NodePort: 30080, TargetPort: 80},
-					},
-					Selector:       map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
-					LoadBalancerIP: "169.10.10.10",
-				}
-
-				service6 = actions.Service{
-					Name: "ha-proxy-443",
-					Type: "NodePort",
-					Ports: []actions.Port{
-						{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: 443},
-					},
-					Selector:    map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
-					ExternalIPs: []string{"158.10.10.10", "158.10.10.11"},
-				}
-
-				service7 = actions.Service{
-					Name: "nginx",
-					Selector: map[string]string{
-						"app": "nginx",
-					},
-					Ports: []actions.Port{
-						{Port: 80},
-					},
-				}
-
-				service8 = actions.Service{
-					Name: "ingress1",
-					Type: "Ingress",
-					Backend: &v1beta1.IngressBackend{
-						ServiceName: "nginx",
-						ServicePort: intstr.FromInt(80),
-					},
-				}
-
-				service9 = actions.Service{
-					Name: "ingress2",
-					Type: "Ingress",
-					TLS: []v1beta1.IngressTLS{
-						{
-							Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
-							SecretName: "apoorv-dev3",
+				cloudProps.Services = []actions.Service{
+					{
+						Name: "director",
+						Type: "NodePort",
+						Ports: []actions.Port{
+							{Name: "agent", Protocol: "TCP", Port: 6868, NodePort: 32068},
+							{Name: "director", Protocol: "TCP", Port: 25555, NodePort: 32067},
 						},
 					},
-					Rules: []v1beta1.IngressRule{
-						{
-							Host: "apoorv-dev3.eu-central.containers.mybluemix.net",
-							IngressRuleValue: v1beta1.IngressRuleValue{
-								HTTP: &v1beta1.HTTPIngressRuleValue{
-									Paths: []v1beta1.HTTPIngressPath{
-										{
-											Path: "/",
-											Backend: v1beta1.IngressBackend{
-												ServiceName: "nginx",
-												ServicePort: intstr.FromInt(80),
+					{
+						Name:      "blobstore",
+						ClusterIP: "10.0.0.1",
+						Ports: []actions.Port{
+							{Port: 25250, Protocol: "TCP"},
+						},
+					},
+					{
+						Name:      "bosh-dns",
+						Type:      "LoadBalancer",
+						ClusterIP: "10.0.0.2",
+						Ports: []actions.Port{
+							{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
+						},
+					},
+					{
+						Name: "bosh-dns-1",
+						Type: "LoadBalancer",
+						Ports: []actions.Port{
+							{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
+						},
+					},
+					{
+						Name: "ha-proxy-80",
+						Type: "LoadBalancer",
+						Ports: []actions.Port{
+							{Name: "ha-proxy-80", Protocol: "TCP", Port: 80, NodePort: 30080, TargetPort: 80},
+						},
+						Selector:       map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
+						LoadBalancerIP: "169.10.10.10",
+					},
+					{
+						Name: "ha-proxy-443",
+						Type: "NodePort",
+						Ports: []actions.Port{
+							{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: 443},
+						},
+						Selector:    map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"},
+						ExternalIPs: []string{"158.10.10.10", "158.10.10.11"},
+					},
+					{
+						Name: "nginx",
+						Selector: map[string]string{
+							"app": "nginx",
+						},
+						Ports: []actions.Port{
+							{Port: 80},
+						},
+					},
+					{
+						Name: "ingress1",
+						Type: "Ingress",
+						Backend: &v1beta1.IngressBackend{
+							ServiceName: "nginx",
+							ServicePort: intstr.FromInt(80),
+						},
+					},
+					{
+						Name: "ingress2",
+						Type: "Ingress",
+						TLS: []v1beta1.IngressTLS{
+							{
+								Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
+								SecretName: "apoorv-dev3",
+							},
+						},
+						Rules: []v1beta1.IngressRule{
+							{
+								Host: "apoorv-dev3.eu-central.containers.mybluemix.net",
+								IngressRuleValue: v1beta1.IngressRuleValue{
+									HTTP: &v1beta1.HTTPIngressRuleValue{
+										Paths: []v1beta1.HTTPIngressPath{
+											{
+												Path: "/",
+												Backend: v1beta1.IngressBackend{
+													ServiceName: "nginx",
+													ServicePort: intstr.FromInt(80),
+												},
 											},
 										},
 									},
@@ -389,8 +382,6 @@ var _ = Describe("CreateVM", func() {
 						},
 					},
 				}
-
-				cloudProps.Services = []actions.Service{service1, service2, service3, service4, service5, service6, service7, service8, service9}
 			})
 
 			It("creates the services", func() {
@@ -400,74 +391,34 @@ var _ = Describe("CreateVM", func() {
 				matches := fakeClient.MatchingActions("create", "services")
 				Expect(matches).To(HaveLen(7))
 
-				service := matches[0].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("director"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeNodePort))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Name: "agent", Protocol: "TCP", Port: 6868, NodePort: 32068},
-					v1.ServicePort{Name: "director", Protocol: "TCP", Port: 25555, NodePort: 32067},
-				))
+				for i, s := range matches {
+					service := s.(testing.CreateAction).GetObject().(*v1.Service)
+					expected := cloudProps.Services[i]
+					Expect(service.Name).To(Equal(expected.Name))
+					Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+					if expected.Type != "" {
+						Expect(service.Spec.Type).To(Equal(v1.ServiceType(expected.Type)))
+					} else {
+						Expect(service.Spec.Type).To(Equal(v1.ServiceTypeClusterIP))
+					}
 
-				service = matches[1].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("blobstore"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeClusterIP))
-				Expect(service.Spec.ClusterIP).To(Equal("10.0.0.1"))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Protocol: "TCP", Port: 25250},
-				))
+					if expected.Selector != nil {
+						Expect(service.Spec.Selector).To(Equal(expected.Selector))
+					}
 
-				service = matches[2].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("bosh-dns"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
-				Expect(service.Spec.ClusterIP).To(Equal("10.0.0.2"))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Name: "bosh-dns", Protocol: "TCP", Port: 53, NodePort: 32069},
-				))
+					if len(expected.Ports) > 0 {
+						var ports []v1.ServicePort
 
-				service = matches[3].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("bosh-dns-1"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
-				Expect(len(service.Spec.ClusterIP)).To(Equal(0))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/agent-id": agentID}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Name: "bosh-dns-1", Protocol: "TCP", Port: 53, NodePort: 32070},
-				))
+						for _, p := range expected.Ports {
+							ports = append(ports, v1.ServicePort{Name: p.Name, Protocol: v1.Protocol(p.Protocol), Port: p.Port, NodePort: p.NodePort, TargetPort: intstr.FromInt(p.TargetPort)})
+						}
 
-				service = matches[4].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("ha-proxy-80"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
-				Expect(len(service.Spec.ClusterIP)).To(Equal(0))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Name: "ha-proxy-80", Protocol: "TCP", Port: 80, NodePort: 30080, TargetPort: intstr.FromInt(80)},
-				))
-				Expect(service.Spec.LoadBalancerIP).To(Equal("169.10.10.10"))
+						Expect(service.Spec.Ports).To(Equal(ports))
+					}
 
-				service = matches[5].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("ha-proxy-443"))
-				Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeNodePort))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"bosh.cloudfoundry.org/job": "ha_proxy_z1"}))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Name: "ha-proxy-443", Protocol: "TCP", Port: 443, NodePort: 30443, TargetPort: intstr.FromInt(443)},
-				))
-				Expect(service.Spec.ExternalIPs).To(Equal([]string{"158.10.10.10", "158.10.10.11"}))
-
-				service = matches[6].(testing.CreateAction).GetObject().(*v1.Service)
-				Expect(service.Name).To(Equal("nginx"))
-				Expect(service.Spec.Type).To(Equal(v1.ServiceTypeClusterIP))
-				Expect(service.Spec.Ports).To(ConsistOf(
-					v1.ServicePort{Port: 80},
-				))
-				Expect(service.Spec.Selector).To(Equal(map[string]string{"app": "nginx"}))
+					Expect(service.Spec.LoadBalancerIP).To(Equal(expected.LoadBalancerIP))
+					Expect(service.Spec.ExternalIPs).To(Equal(expected.ExternalIPs))
+				}
 
 				omatches := fakeClient.MatchingActions("create", "ingresses")
 				fmt.Println(len(omatches))
@@ -477,16 +428,12 @@ var _ = Describe("CreateVM", func() {
 				iService := omatches[0].(testing.CreateAction).GetObject().(*v1beta1.Ingress)
 
 				Expect(iService.Name).To(Equal("ingress1"))
-				//Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				//Expect(iService.Spec.Type).To(Equal("Ingress"))
 				Expect(*iService.Spec.Backend).To(Equal(
 					v1beta1.IngressBackend{ServiceName: "nginx", ServicePort: intstr.FromInt(80)},
 				))
 
 				iService = omatches[1].(testing.CreateAction).GetObject().(*v1beta1.Ingress)
 				Expect(iService.Name).To(Equal("ingress2"))
-				//Expect(service.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
-				//Expect(service.Spec.Type).To(Equal("Ingress"))
 				Expect(iService.Spec.TLS).To(ConsistOf(
 					v1beta1.IngressTLS{
 						Hosts:      []string{"apoorv-dev3.eu-central.containers.mybluemix.net"},
