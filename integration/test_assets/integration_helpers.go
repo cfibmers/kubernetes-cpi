@@ -464,6 +464,29 @@ func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
 	return pvcs, nil
 }
 
+func GetPvcByName(pvcName string, namespace string) (v1.PersistentVolumeClaim, error) {
+	pvc := v1.PersistentVolumeClaim{}
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "pvc", pvcName, "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return pvc, err
+	}
+	if err := cmd.Start(); err != nil {
+		return pvc, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&pvc); err != nil {
+		return pvc, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return pvc, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return pvc, nil
+}
+
 func GetPodByName(podName string, namespace string) (v1.Pod, error) {
 	pod := v1.Pod{}
 

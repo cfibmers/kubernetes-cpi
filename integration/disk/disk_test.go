@@ -1,4 +1,4 @@
-package disk_test
+package disk
 
 import (
 	"encoding/json"

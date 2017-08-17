@@ -2,7 +2,6 @@ package disk
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,9 +11,10 @@ import (
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 	"k8s.io/client-go/pkg/api/v1"
+	"fmt"
 )
 
-var _ = Describe("Disk and Volume Management", func() {
+var _ = Describe("Set Disk Metadata", func() {
 	var (
 		err                             error
 		jsonPayload                     string
@@ -23,40 +23,12 @@ var _ = Describe("Disk and Volume Management", func() {
 		rootTemplatePath, tmpConfigPath string
 		replacementMap                  map[string]string
 		resultOutput                    map[string]interface{}
-		numberOfPods                    int
 		pvcs                            v1.PersistentVolumeClaimList
 		diskID                          string
-		oriPod, newPod                  v1.Pod
 		agentId                         string
-		podName                         string
+		pvcName                         string
+		pvc                             v1.PersistentVolumeClaim
 	)
-
-	CreateVM := func() {
-		agentId = "490c18a5-3bb4-4b92-8550-ee4a1e955624"
-		replacementMap = map[string]string{
-			"agentID": agentId,
-			"context": clusterName,
-		}
-
-		jsonPayload, err := testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
-		Expect(err).ToNot(HaveOccurred())
-
-		outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = json.Unmarshal(outputBytes, &resultOutput)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(resultOutput["result"]).ToNot(BeNil())
-		Expect(resultOutput["error"]).To(BeNil())
-
-		id := resultOutput["result"].(string)
-		Expect(id).Should(ContainSubstring(clusterName))
-		Expect(err).ToNot(HaveOccurred())
-
-		numberOfPods, err = testHelper.PodCount("integration")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(numberOfPods).To(Equal(1))
-	}
 
 	CreateDisk := func() {
 		replacementMap = map[string]string{
@@ -102,32 +74,12 @@ var _ = Describe("Disk and Volume Management", func() {
 	})
 
 	AfterEach(func() {
-		err = os.Remove(tmpConfigPath)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Context("Attaching a Disk", func() {
+	Context("Set Disk Metadata", func() {
 		BeforeEach(func() {
-			CreateVM()
 			CreateDisk()
-
-			podName = fmt.Sprintf("agent-%s", agentId)
-			oriPod, err = testHelper.GetPodByName(podName, "integration")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(testHelper.PodCount("integration")).To(Equal(1))
-
-			pvcs, err = testHelper.Pvcs("integration")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(pvcs.Items)).To(Equal(1))
-
-			replacementMap = map[string]string{
-				"context": clusterName,
-				"diskID":  diskID,
-				"agentID": agentId,
-			}
-
-			jsonPayload, err = testHelper.GenerateCpiJsonPayload("attach_disk", rootTemplatePath, replacementMap)
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -141,18 +93,37 @@ var _ = Describe("Disk and Volume Management", func() {
 			}, "10s").Should(Equal(0))
 		})
 
-		It("Attach a valid disk to a pod", func() {
-			_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+		It("Set Disk Metadata successfully", func() {
+			replacementMap = map[string]string{
+				"context": clusterName,
+				"diskID":  diskID,
+				"agentID": agentId,
+			}
+
+			pvcName = fmt.Sprintf("disk-%s", diskID)
+			pvc, err = testHelper.GetPvcByName(pvcName, "integration")
 			Expect(err).ToNot(HaveOccurred())
 
-			pvcs, err = testHelper.Pvcs("integration")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(pvcs.Items)).To(Equal(1))
-			Expect(testHelper.PodCount("integration")).To(Equal(1))
+			Expect(len(pvc.ObjectMeta.Labels)).To(Equal(1))
 
-			newPod, err = testHelper.GetPodByName(podName, "integration")
-			Eventually(len(newPod.Spec.Volumes), 600).Should(BeNumerically(">", len(oriPod.Spec.Volumes)))
-			Expect(newPod.Spec.Hostname).To(Equal(oriPod.Spec.Hostname))
+			jsonPayload, err := testHelper.GenerateCpiJsonPayload("set_disk_metadata", rootTemplatePath, replacementMap)
+			Expect(err).ToNot(HaveOccurred())
+
+			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = json.Unmarshal(outputBytes, &resultOutput)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resultOutput["result"]).To(BeNil())
+			Expect(resultOutput["error"]).To(BeNil())
+
+			pvc, err = testHelper.GetPvcByName(pvcName, "integration")
+			Expect(len(pvc.ObjectMeta.Labels)).To(Equal(6))
+			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/director"]).To(Equal("bosh"))
+			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/deployment"]).To(Equal("cf-kube"))
+			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentId))
+			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/instance_index"]).To(Equal("0"))
+			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/attached_at"]).To(Equal("2017-08-17T03_51_15Z"))
 		})
 	})
 })

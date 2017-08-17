@@ -1,0 +1,16 @@
+{
+  "method": "set_disk_metadata",
+  "arguments": [
+    "{{ .Context }}:{{ .DiskID }}",
+    {
+      "director": "bosh",
+      "deployment": "cf-kube",
+      "instance_index": "0",
+      "attached_at": "2017-08-17T03:51:15Z",
+      "instance_group": "bosh"
+    }
+  ],
+  "context": {
+    "director_uuid": "director-id"
+  }
+}

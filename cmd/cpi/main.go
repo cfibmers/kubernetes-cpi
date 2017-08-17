@@ -119,6 +119,10 @@ func main() {
 		}
 		result, err = cpi.Dispatch(&req, volumeManager.AttachDisk)
 
+	case "set_disk_metadata":
+		diskMetadataSetter := actions.DiskMetadataSetter{ClientProvider: provider}
+		result, err = cpi.Dispatch(&req, diskMetadataSetter.SetDiskMetadata)
+
 	case "has_disk":
 		diskFinder := actions.DiskFinder{ClientProvider: provider}
 		result, err = cpi.Dispatch(&req, diskFinder.HasDisk)
