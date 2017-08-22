@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 	"k8s.io/client-go/pkg/api/v1"
-	"fmt"
 )
 
 var _ = Describe("Set Disk Metadata", func() {

@@ -3,11 +3,16 @@
   "arguments": [
     "{{ .Context }}:{{ .DiskID }}",
     {
-      "director": "bosh",
-      "deployment": "cf-kube",
-      "instance_index": "0",
-      "attached_at": "2017-08-17T03:51:15Z",
-      "instance_group": "bosh"
+      "labels": {
+        "director": "bosh",
+        "deployment": "cf-kube",
+        "instance_index": "0",
+        "attached_at": "2017-08-17T03:51:15Z",
+        "instance_group": "bosh"
+      },
+      "annotations": {
+        "repo_url": "https://github.com/myorg/myrepo"
+      }
     }
   ],
   "context": {
