@@ -441,6 +441,52 @@ func GetServiceByName(namespace string, serviceName string) (v1.Service, error) 
 	return service, nil
 }
 
+func SecretCount(namespace string) (int, error) {
+	var secrets v1.SecretList
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "secrets", "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&secrets); err != nil {
+		return 0, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return 0, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return len(secrets.Items), nil
+}
+
+func GetSecretByName(namespace string, secretName string) (v1.Secret, error) {
+	var sercet = v1.Secret{}
+
+	cmd := exec.Command("kubectl", "-n", namespace, "get", "secret", secretName, "-o", "json")
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		return sercet, err
+	}
+	if err := cmd.Start(); err != nil {
+		return sercet, err
+	}
+
+	if err := json.NewDecoder(cmdOut).Decode(&sercet); err != nil {
+		return sercet, err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return sercet, errors.New("Failure in Wait() when executing external command")
+	}
+
+	return sercet, nil
+}
+
 func Pvcs(namespace string) (v1.PersistentVolumeClaimList, error) {
 	var pvcs v1.PersistentVolumeClaimList
 
