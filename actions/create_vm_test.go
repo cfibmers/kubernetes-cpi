@@ -3,6 +3,9 @@ package actions_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/resource"
@@ -21,8 +24,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"fmt"
 )
 
 var _ = Describe("CreateVM", func() {
@@ -72,9 +73,11 @@ var _ = Describe("CreateVM", func() {
 
 	Describe("Create", func() {
 		var (
-			stemcellCID cpi.StemcellCID
-			cloudProps  actions.VMCloudProperties
-			diskCIDs    []cpi.DiskCID
+			stemcellCID   cpi.StemcellCID
+			cloudProps    actions.VMCloudProperties
+			diskCIDs      []cpi.DiskCID
+			secretTypeMap map[v1.SecretType]string
+			tmpFile       string
 		)
 
 		BeforeEach(func() {
@@ -471,6 +474,102 @@ var _ = Describe("CreateVM", func() {
 					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
 					Expect(err).To(MatchError("service-welp"))
 					Expect(fakeClient.MatchingActions("create", "services")).To(HaveLen(1))
+				})
+			})
+		})
+
+		Context("when secret definitions are present in the cloud properties", func() {
+			BeforeEach(func() {
+				file, err := ioutil.TempFile(os.TempDir(), ".dockercfg")
+				tmpFile = file.Name()
+				Expect(err).ToNot(HaveOccurred())
+
+				cloudProps.Secrets = []actions.Secret{
+					{
+						Name: "secret-defaultType",
+						Data: map[string]string{
+							"username": "admin",
+							"password": "admin",
+						},
+						StringData: map[string]string{
+							"foo": "bar",
+						},
+					},
+					{
+						Name: "secret-TLS",
+						Type: "TLS",
+						Data: map[string]string{
+							"tls.key":  "fake-key",
+							"tls.cert": "fake-cert",
+						},
+					},
+					{
+						Name: "secret-ServiceAccountToken",
+						Type: "ServiceAccountToken",
+						Data: map[string]string{
+							"token": "fake-token",
+						},
+						Annotations: map[string]string{
+							"kubernetes.io/service-account.name": "fake-account-name",
+							"kubernetes.io/service-account.uid":  "fake-account-uid",
+						},
+					},
+					{
+						Name: "secret-DockerCfg",
+						Type: "DockerCfg",
+						Data: map[string]string{
+							".dockercfg": tmpFile,
+						},
+					},
+				}
+				secretTypeMap = map[v1.SecretType]string{
+					v1.SecretTypeOpaque:              "Opaque",
+					v1.SecretTypeTLS:                 "TLS",
+					v1.SecretTypeServiceAccountToken: "ServiceAccountToken",
+					v1.SecretTypeDockercfg:           "DockerCfg",
+				}
+			})
+
+			AfterEach(func() {
+				os.Remove(tmpFile)
+			})
+
+			It("creates the secret", func() {
+				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
+				Expect(err).NotTo(HaveOccurred())
+
+				matches := fakeClient.MatchingActions("create", "secrets")
+				Expect(matches).To(HaveLen(4))
+
+				for i, s := range matches {
+					secret := s.(testing.CreateAction).GetObject().(*v1.Secret)
+					expected := cloudProps.Secrets[i]
+					Expect(secret.Name).To(Equal(expected.Name))
+					Expect(secret.Labels["bosh.cloudfoundry.org/agent-id"]).To(Equal(agentID))
+					if expected.Type != "" {
+						Expect(secretTypeMap[secret.Type]).To(Equal(expected.Type))
+					} else {
+						Expect(secretTypeMap[secret.Type]).To(Equal("Opaque"))
+					}
+				}
+			})
+
+			Context("when the secret create fails", func() {
+				It("errors when secret with same name already exists", func() {
+					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
+					Expect(err).NotTo(HaveOccurred())
+					_, err = vmCreator.Create(agentID+"uniqueAgentId", stemcellCID, cloudProps, networks, diskCIDs, env)
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("Secret name " + cloudProps.Secrets[0].Name + " already exists."))
+				})
+
+				It("returns an error", func() {
+					fakeClient.PrependReactor("create", "secrets", func(action testing.Action) (bool, runtime.Object, error) {
+						return true, nil, errors.New("secret-welp")
+					})
+					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
+					Expect(err).To(MatchError("secret-welp"))
+					Expect(fakeClient.MatchingActions("create", "secrets")).To(HaveLen(1))
 				})
 			})
 		})

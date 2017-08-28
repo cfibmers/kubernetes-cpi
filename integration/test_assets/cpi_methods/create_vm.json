@@ -109,7 +109,34 @@
             "158.10.10.11"
           ]
         }
-      ]
+      ],
+      "secrets": [
+        {
+          "name": "secret-default",
+          "data": {
+            "username": "admin",
+            "password": "admin"
+            },
+          "string_data": {
+            "foo": "bar"
+          }
+        },
+        {
+          "name": "secret-tls",
+          "type": "TLS",
+          "data": {
+            "tls.key": "fake-key",
+            "tls.crt": "fake-cert"
+          }
+        },
+        {
+          "name": "secret-dockercfg",
+          "type": "DockerCfg",
+          "data": {
+            ".dockercfg": "./../../integration/test_assets/cpi_methods/.dockercfg"
+          }
+        }
+        ]
     },
     {
       "default": {

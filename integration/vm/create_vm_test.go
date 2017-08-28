@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
+	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/util/intstr"
 )
@@ -182,6 +183,45 @@ var _ = Describe("Creating a VM", func() {
 					"bosh.cloudfoundry.org/job": "ha_proxy_z1",
 				}))
 				Expect(haproxyService2.Spec.ExternalIPs).To(Equal([]string{"158.10.10.10", "158.10.10.11"}))
+			})
+		})
+
+		Context("When there are secrets in the cloud properties", func() {
+			var numberOfSecrets int
+
+			BeforeEach(func() {
+				jsonPayload, err = testHelper.GenerateCpiJsonPayload("create_vm", rootTemplatePath, replacementMap)
+				Expect(err).ToNot(HaveOccurred())
+
+				numberOfSecrets, err = testHelper.SecretCount("integration")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(numberOfSecrets).To(Equal(1))
+			})
+
+			It("Creates the secrets with correct type and data", func() {
+				_, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(func() int {
+					numberOfSecrets, err = testHelper.SecretCount("integration")
+					Expect(err).NotTo(HaveOccurred())
+					return numberOfSecrets
+				}, "30s").Should(Equal(4))
+
+				secretDefault, err := testHelper.GetSecretByName("integration", "secret-default")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(secretDefault.Type).To(Equal(v1.SecretTypeOpaque))
+				Expect(len(secretDefault.Data)).To(Equal(3))
+
+				secretTLS, err := testHelper.GetSecretByName("integration", "secret-tls")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(secretTLS.Type).To(Equal(v1.SecretTypeTLS))
+				Expect(len(secretTLS.Data)).To(Equal(2))
+
+				secretDockerCfg, err := testHelper.GetSecretByName("integration", "secret-dockercfg")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(secretDockerCfg.Type).To(Equal(v1.SecretTypeDockercfg))
+				Expect(len(secretDockerCfg.Data)).To(Equal(1))
 			})
 		})
 

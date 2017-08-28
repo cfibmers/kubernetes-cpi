@@ -4,21 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"sync"
+
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
+	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	kubeerrors "k8s.io/client-go/pkg/api/errors"
+	api "k8s.io/client-go/pkg/api/v1"
+	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
-
-	core "k8s.io/client-go/kubernetes/typed/core/v1"
-	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	kubeerrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
-	api "k8s.io/client-go/pkg/api/v1"
-	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/util/intstr"
 )
 
@@ -38,6 +39,14 @@ type Service struct {
 	Backend        *v1beta1.IngressBackend `json:"backend"`
 	TLS            []v1beta1.IngressTLS    `json:"tls"`
 	Rules          []v1beta1.IngressRule   `json:"rules"`
+}
+
+type Secret struct {
+	Name        string            `json:"name"`
+	Type        string            `json:"type"`
+	Annotations map[string]string `json:"annotations"`
+	Data        map[string]string `json:"data"`
+	StringData  map[string]string `json:"string_data"`
 }
 
 type Port struct {
@@ -95,6 +104,7 @@ type Resources struct {
 type VMCloudProperties struct {
 	Context   string    `json:"context"`
 	Services  []Service `json:"services,omitempty"`
+	Secrets   []Secret  `json:"secrets,omitempty"`
 	Resources Resources `json:"resources,omitempty"`
 	Replicas  *int32    `json:"replicas"`
 }
@@ -143,6 +153,11 @@ func (v *VMCreator) Create(
 
 	// create the service
 	err = createServices(client, ns, agentID, cloudProps.Services)
+	if err != nil {
+		return "", err
+	}
+
+	err = createSecret(client.Core(), ns, agentID, cloudProps.Secrets)
 	if err != nil {
 		return "", err
 	}
@@ -292,6 +307,9 @@ func createServices(client kubecluster.Client, ns, agentID string, services []Se
 				},
 			}
 			_, err = client.IngressService().Create(service)
+			if err != nil {
+				return err
+			}
 		} else {
 			service := &v1.Service{
 				ObjectMeta: objectMeta,
@@ -318,14 +336,68 @@ func createServices(client kubecluster.Client, ns, agentID string, services []Se
 			lock.Lock()
 			if _, err = client.Services().Get(svc.Name); err != nil {
 				_, err = client.Services().Create(service)
+				if err != nil {
+					return err
+				}
 			}
 			lock.Unlock()
 		}
+	}
+	return nil
+}
 
+func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets []Secret) error {
+	var err error
+	for _, srt := range secrets {
+		if _, err := coreClient.Secrets(ns).Get(srt.Name); err == nil {
+			return errors.New("Secret name " + srt.Name + " already exists.")
+		}
+
+		var secretType v1.SecretType
+		switch srt.Type {
+		default:
+			secretType = v1.SecretTypeOpaque
+		case "DockerCfg":
+			secretType = v1.SecretTypeDockercfg
+		case "ServiceAccountToken":
+			secretType = v1.SecretTypeServiceAccountToken
+		case "TLS":
+			secretType = v1.SecretTypeTLS
+		}
+
+		data := make(map[string][]byte)
+		for k, v := range srt.Data {
+			if k == ".dockercfg" {
+				if data[k], err = ioutil.ReadFile(v); err != nil {
+					return err
+				}
+			} else {
+				data[k] = []byte(v)
+			}
+		}
+
+		objectMeta := v1.ObjectMeta{
+			Name:      srt.Name,
+			Namespace: ns,
+			Labels: map[string]string{
+				"bosh.cloudfoundry.org/agent-id": agentID,
+			},
+			Annotations: srt.Annotations,
+		}
+
+		secret := &v1.Secret{
+			ObjectMeta: objectMeta,
+			Data:       data,
+			StringData: srt.StringData,
+			Type:       secretType,
+		}
+
+		_, err = coreClient.Secrets(ns).Create(secret)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
