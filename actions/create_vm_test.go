@@ -73,11 +73,11 @@ var _ = Describe("CreateVM", func() {
 
 	Describe("Create", func() {
 		var (
-			stemcellCID    cpi.StemcellCID
-			cloudProps     actions.VMCloudProperties
-			diskCIDs       []cpi.DiskCID
+			stemcellCID   cpi.StemcellCID
+			cloudProps    actions.VMCloudProperties
+			diskCIDs      []cpi.DiskCID
 			secretTypeMap map[v1.SecretType]string
-			tmpFile        string
+			tmpFile       string
 		)
 
 		BeforeEach(func() {
@@ -555,13 +555,18 @@ var _ = Describe("CreateVM", func() {
 			})
 
 			Context("when the secret create fails", func() {
-				BeforeEach(func() {
-					fakeClient.PrependReactor("create", "secrets", func(action testing.Action) (bool, runtime.Object, error) {
-						return true, nil, errors.New("secret-welp")
-					})
+				It("errors when secret with same name already exists", func() {
+					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
+					Expect(err).NotTo(HaveOccurred())
+					_, err = vmCreator.Create(agentID+"uniqueAgentId", stemcellCID, cloudProps, networks, diskCIDs, env)
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("Secret name " + cloudProps.Secrets[0].Name + " already exists."))
 				})
 
 				It("returns an error", func() {
+					fakeClient.PrependReactor("create", "secrets", func(action testing.Action) (bool, runtime.Object, error) {
+						return true, nil, errors.New("secret-welp")
+					})
 					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
 					Expect(err).To(MatchError("secret-welp"))
 					Expect(fakeClient.MatchingActions("create", "secrets")).To(HaveLen(1))

@@ -349,6 +349,10 @@ func createServices(client kubecluster.Client, ns, agentID string, services []Se
 func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets []Secret) error {
 	var err error
 	for _, srt := range secrets {
+		if _, err := coreClient.Secrets(ns).Get(srt.Name); err == nil {
+			return errors.New("Secret name " + srt.Name + " already exists.")
+		}
+
 		var secretType v1.SecretType
 		switch srt.Type {
 		default:
@@ -388,11 +392,9 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 			Type:       secretType,
 		}
 
-		if _, err = coreClient.Secrets(ns).Get(secret.Name); err != nil {
-			_, err = coreClient.Secrets(ns).Create(secret)
-			if err != nil {
-				return err
-			}
+		_, err = coreClient.Secrets(ns).Create(secret)
+		if err != nil {
+			return err
 		}
 	}
 
