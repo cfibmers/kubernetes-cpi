@@ -16,13 +16,10 @@ import (
 
 var _ = Describe("SetDiskMetadata", func() {
 	var (
-		fakeClient   *fakes.Client
-		fakeProvider *fakes.ClientProvider
-		diskCID      cpi.DiskCID
-		metadata     actions.Metadata
-		labels       map[string]string
-		annotations  map[string]string
-
+		fakeClient         *fakes.Client
+		fakeProvider       *fakes.ClientProvider
+		diskCID            cpi.DiskCID
+		metadata           map[string]string
 		diskMetadataSetter *actions.DiskMetadataSetter
 	)
 
@@ -35,16 +32,12 @@ var _ = Describe("SetDiskMetadata", func() {
 		fakeProvider.NewReturns(fakeClient, nil)
 
 		diskCID = actions.NewDiskCID("bosh", "fake-id")
-		labels = map[string]string{
+		metadata = map[string]string{
 			"director":       "bosh",
 			"deployment":     "cf-kube",
 			"instance_index": "0",
 			"attached_at":    "2017-08-17T03:51:15Z",
 			"instance_group": "bosh",
-		}
-
-		annotations = map[string]string{
-			"release_repo": "https://github.com/myorg/myrepo",
 		}
 
 		fakeClient.Clientset = *fake.NewSimpleClientset(
@@ -63,15 +56,8 @@ var _ = Describe("SetDiskMetadata", func() {
 		diskMetadataSetter = &actions.DiskMetadataSetter{ClientProvider: fakeProvider}
 	})
 
-	JustBeforeEach(func() {
-		metadata = actions.Metadata{
-			Labels:      labels,
-			Annotations: annotations,
-		}
-	})
-
-	Describe("Setting labels", func() {
-		It("Updates the metadata labels", func() {
+	Describe("Setting metadata", func() {
+		It("Updates the metadata", func() {
 			pvc, _ := fakeClient.PersistentVolumeClaims().Get("disk-fake-id")
 			Expect(pvc.ObjectMeta.Labels).To(HaveLen(1))
 
@@ -92,7 +78,7 @@ var _ = Describe("SetDiskMetadata", func() {
 			Expect(pvc.ObjectMeta.Labels["bosh.cloudfoundry.org/instance_group"]).To(Equal("bosh"))
 		})
 
-		Context("When the disk does not have any prior labels", func() {
+		Context("When the disk does not have any prior metadata", func() {
 			BeforeEach(func() {
 				fakeClient.Clientset = *fake.NewSimpleClientset(
 					&v1.PersistentVolumeClaim{ObjectMeta: v1.ObjectMeta{
@@ -102,7 +88,7 @@ var _ = Describe("SetDiskMetadata", func() {
 				)
 			})
 
-			It("Updates the labels", func() {
+			It("Updates the metadata", func() {
 				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -116,12 +102,12 @@ var _ = Describe("SetDiskMetadata", func() {
 			})
 		})
 
-		Context("When the label key is not a qualified name", func() {
+		Context("When the metadata is not a qualified name", func() {
 			BeforeEach(func() {
-				labels["wizzy?wig*"] = "labeltobeskipped"
+				metadata["wizzy?wig*"] = "labeltobeskipped"
 			})
 
-			It("It does not add any of the requested labels", func() {
+			It("It does not add any of the requested metadata", func() {
 				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
 				Expect(err).To(HaveOccurred())
 
@@ -137,16 +123,16 @@ var _ = Describe("SetDiskMetadata", func() {
 			It("Returns a descriptive error message", func() {
 				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Error setting disk metadata: label"))
+				Expect(err.Error()).To(ContainSubstring("Error setting disk metadata:"))
 			})
 		})
 
-		Context("When the label value is not valid", func() {
+		Context("When the metadata value is not valid", func() {
 			BeforeEach(func() {
-				labels["valid_key"] = "This l4bel might be skipped!"
+				metadata["valid_key"] = "This l4bel might be skipped!"
 			})
 
-			It("It does not add any of the requested labels", func() {
+			It("It does not add any of the requested metadata", func() {
 				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
 				Expect(err).To(HaveOccurred())
 
@@ -162,82 +148,7 @@ var _ = Describe("SetDiskMetadata", func() {
 			It("Returns a descriptive error message", func() {
 				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Error setting disk metadata: label"))
-			})
-		})
-	})
-
-	Describe("Setting annotations", func() {
-		It("Updates the annotations", func() {
-			err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
-			Expect(err).NotTo(HaveOccurred())
-
-			matches := fakeClient.MatchingActions("update", "persistentvolumeclaims")
-			Expect(matches).To(HaveLen(1))
-
-			pvc := matches[0].(testing.UpdateAction).GetObject().(*v1.PersistentVolumeClaim)
-
-			Expect(pvc.ObjectMeta.Annotations).To(HaveLen(2))
-			Expect(pvc.ObjectMeta.Annotations["release_repo"]).To(Equal("https://github.com/myorg/myrepo"))
-			Expect(pvc.ObjectMeta.Annotations["bosh.cloudfoundry.org/api_url"]).To(Equal("api.ng.bluemix.net"))
-		})
-
-		Context("When the disk does not have any prior annotations", func() {
-			BeforeEach(func() {
-				fakeClient.Clientset = *fake.NewSimpleClientset(
-					&v1.PersistentVolumeClaim{ObjectMeta: v1.ObjectMeta{
-						Name:      "disk-fake-id",
-						Namespace: "bosh-namespace",
-						Labels: map[string]string{
-							"bosh.cloudfoundry.org/disk-id": "fake-id",
-						},
-					}},
-				)
-			})
-
-			It("Updates the annotations", func() {
-				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
-				Expect(err).NotTo(HaveOccurred())
-
-				matches := fakeClient.MatchingActions("update", "persistentvolumeclaims")
-				Expect(matches).To(HaveLen(1))
-
-				pvc := matches[0].(testing.UpdateAction).GetObject().(*v1.PersistentVolumeClaim)
-
-				Expect(pvc.ObjectMeta.Annotations).To(HaveLen(1))
-				Expect(pvc.ObjectMeta.Annotations["release_repo"]).To(Equal("https://github.com/myorg/myrepo"))
-
-				pvc, _ = fakeClient.PersistentVolumeClaims().Get("disk-fake-id")
-				Expect(pvc.ObjectMeta.Annotations).To(HaveLen(1))
-				Expect(pvc.ObjectMeta.Annotations["release_repo"]).To(Equal("https://github.com/myorg/myrepo"))
-			})
-		})
-
-		Context("When the annotation key is not a qualified name", func() {
-			BeforeEach(func() {
-				annotations["not_a_valid_dns_subdomain?/some_org"] = "annotation-to-be-skipped"
-			})
-
-			It("It does not add any of the requested annotations", func() {
-				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
-				Expect(err).To(HaveOccurred())
-
-				matches := fakeClient.MatchingActions("update", "persistentvolumeclaims")
-				Expect(matches).To(HaveLen(0))
-
-				pvc, _ := fakeClient.PersistentVolumeClaims().Get("disk-fake-id")
-
-				Expect(pvc.ObjectMeta.Annotations).To(HaveLen(1))
-				Expect(pvc.ObjectMeta.Annotations["bosh.cloudfoundry.org/api_url"]).To(Equal("api.ng.bluemix.net"))
-				_, exists := pvc.ObjectMeta.Annotations["bosh.cloudfoundry.org/release_repo"]
-
-				Expect(exists).To(BeFalse())
-			})
-
-			It("Returns a descriptive error message", func() {
-				err := diskMetadataSetter.SetDiskMetadata(diskCID, metadata)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Error setting disk metadata: annotation"))
+				Expect(err.Error()).To(ContainSubstring("Error setting disk metadata:"))
 			})
 		})
 	})

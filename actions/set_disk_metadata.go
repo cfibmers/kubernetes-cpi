@@ -18,7 +18,7 @@ type Metadata struct {
 	Annotations map[string]string
 }
 
-func (v *DiskMetadataSetter) SetDiskMetadata(diskCID cpi.DiskCID, metadata Metadata) error {
+func (v *DiskMetadataSetter) SetDiskMetadata(diskCID cpi.DiskCID, metadata map[string]string) error {
 	context, diskID := ParseDiskCID(diskCID)
 
 	client, err := v.ClientProvider.New(context)
@@ -35,7 +35,7 @@ func (v *DiskMetadataSetter) SetDiskMetadata(diskCID cpi.DiskCID, metadata Metad
 		disk.ObjectMeta.Labels = map[string]string{}
 	}
 
-	for k, v := range metadata.Labels {
+	for k, v := range metadata {
 		if k == "attached_at" {
 			v = strings.Replace(v, ":", "_", -1)
 		}
@@ -43,28 +43,15 @@ func (v *DiskMetadataSetter) SetDiskMetadata(diskCID cpi.DiskCID, metadata Metad
 		k = "bosh.cloudfoundry.org/" + k
 		errs := validation.IsQualifiedName(k)
 		if len(errs) > 0 {
-			return fmt.Errorf("Error setting disk metadata: label \"%s\": \"%s\": %s", k, v, strings.Join(errs, ": "))
+			return fmt.Errorf("Error setting disk metadata: \"%s\": \"%s\": %s", k, v, strings.Join(errs, ": "))
 		}
 
 		errs = validation.IsValidLabelValue(v)
 		if len(errs) > 0 {
-			return fmt.Errorf("Error setting disk metadata: label \"%s\": \"%s\": %s", k, v, strings.Join(errs, ": "))
+			return fmt.Errorf("Error setting disk metadata: \"%s\": \"%s\": %s", k, v, strings.Join(errs, ": "))
 		}
 
 		disk.ObjectMeta.Labels[k] = v
-	}
-
-	if disk.ObjectMeta.Annotations == nil {
-		disk.ObjectMeta.Annotations = map[string]string{}
-	}
-
-	for k, v := range metadata.Annotations {
-		errs := validation.IsQualifiedName(k)
-		if len(errs) > 0 {
-			return fmt.Errorf("Error setting disk metadata: annotation \"%s\": \"%s\": %s", k, v, strings.Join(errs, ": "))
-		}
-
-		disk.ObjectMeta.Annotations[k] = v
 	}
 
 	_, err = client.PersistentVolumeClaims().Update(disk)
