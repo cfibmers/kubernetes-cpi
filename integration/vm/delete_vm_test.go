@@ -76,7 +76,7 @@ var _ = Describe("Integration test for vm", func() {
 	})
 
 	AfterEach(func() {
-		deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
+		deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc,secret", "--all")
 		err = deleteAll.Run()
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() int {

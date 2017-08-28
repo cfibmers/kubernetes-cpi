@@ -77,7 +77,7 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		AfterEach(func() {
-			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc", "--all")
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "po,svc,secret", "--all")
 			err = deleteAll.Run()
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() int {
@@ -259,7 +259,7 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		AfterEach(func() {
-			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc", "--all")
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc,secret", "--all")
 			err = deleteAll.Run()
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() int {
@@ -336,7 +336,7 @@ var _ = Describe("Creating a VM", func() {
 		})
 
 		AfterEach(func() {
-			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc,ing", "--all")
+			deleteAll := exec.Command("kubectl", "-n", "integration", "delete", "deploy,svc,ing,secret", "--all")
 			err = deleteAll.Run()
 			Expect(err).ShouldNot(HaveOccurred())
 			Eventually(func() int {
