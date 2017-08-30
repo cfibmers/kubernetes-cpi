@@ -338,10 +338,15 @@ func namespaceExists(namespace string) bool {
 	return false
 }
 
-func PodCount(namespace string) (int, error) {
-	var pods v1.PodList
+// Given an array of strings of a kubectrl command,
+// return the count of the Items of the json payload
+func Count(commandArray []string) (int, error) {
+	type KubeObj struct {
+		Items []interface{}
+	}
+	var kubeObj KubeObj
+	cmd := exec.Command(commandArray[0], commandArray[1:]...)
 
-	cmd := exec.Command("kubectl", "-n", namespace, "get", "po", "-o", "json")
 	cmdOut, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -350,7 +355,7 @@ func PodCount(namespace string) (int, error) {
 		return 0, err
 	}
 
-	if err := json.NewDecoder(cmdOut).Decode(&pods); err != nil {
+	if err := json.NewDecoder(cmdOut).Decode(&kubeObj); err != nil {
 		return 0, err
 	}
 
@@ -358,11 +363,12 @@ func PodCount(namespace string) (int, error) {
 		return 0, errors.New("Failure in Wait() when executing external command")
 	}
 
-	// fmt.Fprintln(os.Stderr, "PODS FOUND")
-	// for i := 0; i < len(pods.Items); i++ {
-	// 	fmt.Fprintf(os.Stderr, "Pod: %s\tNamespace: %s\n", pods.Items[i].ObjectMeta.Name, pods.Items[i].ObjectMeta.Namespace)
-	// }
-	return len(pods.Items), nil
+	return len(kubeObj.Items), nil
+}
+
+func PodCount(namespace string) (int, error) {
+	commandArray := []string{"kubectl", "-n", namespace, "get", "po", "-o", "json"}
+	return Count(commandArray)
 }
 
 func ReplicaCount(namespace, vmcid string) (int32, error) {
@@ -396,26 +402,8 @@ func ReplicaCount(namespace, vmcid string) (int32, error) {
 }
 
 func ServiceCount(namespace string) (int, error) {
-	var services v1.ServiceList
-
-	cmd := exec.Command("kubectl", "-n", namespace, "get", "svc", "-o", "json")
-	cmdOut, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	if err := cmd.Start(); err != nil {
-		return 0, err
-	}
-
-	if err := json.NewDecoder(cmdOut).Decode(&services); err != nil {
-		return 0, err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return 0, errors.New("Failure in Wait() when executing external command")
-	}
-
-	return len(services.Items), nil
+	commandArray := []string{"kubectl", "-n", namespace, "get", "svc", "-o", "json"}
+	return Count(commandArray)
 }
 
 func GetServiceByName(namespace string, serviceName string) (v1.Service, error) {
@@ -442,26 +430,8 @@ func GetServiceByName(namespace string, serviceName string) (v1.Service, error) 
 }
 
 func SecretCount(namespace string) (int, error) {
-	var secrets v1.SecretList
-
-	cmd := exec.Command("kubectl", "-n", namespace, "get", "secrets", "-o", "json")
-	cmdOut, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	if err := cmd.Start(); err != nil {
-		return 0, err
-	}
-
-	if err := json.NewDecoder(cmdOut).Decode(&secrets); err != nil {
-		return 0, err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return 0, errors.New("Failure in Wait() when executing external command")
-	}
-
-	return len(secrets.Items), nil
+	commandArray := []string{"kubectl", "-n", namespace, "get", "secrets", "-o", "json"}
+	return Count(commandArray)
 }
 
 func GetSecretByName(namespace string, secretName string) (v1.Secret, error) {
@@ -580,26 +550,8 @@ func GetPodListByAgentId(namespace string, agentId string) (v1.PodList, error) {
 }
 
 func IngressCount(namespace string) (int, error) {
-	var ingresses v1beta1.IngressList
-
-	cmd := exec.Command("kubectl", "-n", namespace, "get", "ing", "-o", "json")
-	cmdOut, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	if err := cmd.Start(); err != nil {
-		return 0, err
-	}
-
-	if err := json.NewDecoder(cmdOut).Decode(&ingresses); err != nil {
-		return 0, err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return 0, errors.New("Failure in Wait() when executing external command")
-	}
-
-	return len(ingresses.Items), nil
+	commandArray := []string{"kubectl", "-n", namespace, "get", "ing", "-o", "json"}
+	return Count(commandArray)
 }
 
 func GetIngressByName(namespace string, ingressName string) (v1beta1.Ingress, error) {
