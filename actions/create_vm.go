@@ -2,11 +2,10 @@ package actions
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"sync"
 
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
@@ -121,19 +120,19 @@ func (v *VMCreator) Create(
 	// only one network is supported
 	network, err := getNetwork(networks)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Getting network")
 	}
 
 	// create the client set
 	client, err := v.ClientProvider.New(cloudProps.Context)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating client")
 	}
 
 	// create the target namespace if it doesn't already exist
 	err = createNamespace(client.Core(), client.Namespace())
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating namespace")
 	}
 
 	// NOTE: This is a workaround for the fake Clientset. This should be
@@ -142,40 +141,40 @@ func (v *VMCreator) Create(
 	ns := client.Namespace()
 	instanceSettings, err := v.InstanceSettings(agentID, networks, env)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating instance settings")
 	}
 
 	// create the config map
 	_, err = createConfigMap(client.ConfigMaps(), ns, agentID, instanceSettings)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating config map")
 	}
 
 	// create the service
 	err = createServices(client, ns, agentID, cloudProps.Services)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating services")
 	}
 
 	err = createSecret(client.Core(), ns, agentID, cloudProps.Secrets)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating secret")
 	}
 
 	if cloudProps.Replicas == nil {
 		// create the pod
 		_, err = createPod(client.Pods(), ns, agentID, string(stemcellCID), *network, cloudProps.Resources)
 		if err != nil {
-			return "", err
+			return "", bosherr.WrapError(err, "Creating pod")
 		}
 	} else if *cloudProps.Replicas >= 1 {
 		// create the deployments
 		_, err := createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps)
 		if err != nil {
-			return "", err
+			return "", bosherr.WrapError(err, "Creating deployment")
 		}
 	} else {
-		return "", errors.New("Invalid number of Replicas specified in Cloud Properties")
+		return "", bosherr.Error("Invalid number of Replicas specified in Cloud Properties")
 	}
 
 	return NewVMCID(client.Context(), agentID), nil
@@ -184,13 +183,13 @@ func (v *VMCreator) Create(
 func getNetwork(networks cpi.Networks) (*cpi.Network, error) {
 	switch len(networks) {
 	case 0:
-		return nil, errors.New("a network is required")
+		return nil, bosherr.Error("a network is required")
 	case 1:
 		for _, nw := range networks {
 			return &nw, nil
 		}
 	default:
-		return nil, errors.New("multiple networks not supported")
+		return nil, bosherr.Error("multiple networks not supported")
 	}
 
 	panic("unreachable")
@@ -201,7 +200,7 @@ func (v *VMCreator) InstanceSettings(agentID string, networks cpi.Networks, env 
 	for name, cpiNetwork := range networks {
 		agentNetwork := agent.Network{}
 		if err := cpi.Remarshal(cpiNetwork, &agentNetwork); err != nil {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Remarshalling network")
 		}
 		agentNetwork.Preconfigured = true
 		agentNetworks[name] = agentNetwork
@@ -246,7 +245,7 @@ func createNamespace(coreClient core.CoreV1Interface, namespace string) error {
 func createConfigMap(configMapService core.ConfigMapInterface, ns, agentID string, instanceSettings *agent.Settings) (*v1.ConfigMap, error) {
 	instanceJSON, err := json.Marshal(instanceSettings)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Marshalling instance settings")
 	}
 
 	return configMapService.Create(&v1.ConfigMap{
@@ -337,7 +336,7 @@ func createServices(client kubecluster.Client, ns, agentID string, services []Se
 			if _, err = client.Services().Get(svc.Name); err != nil {
 				_, err = client.Services().Create(service)
 				if err != nil {
-					return err
+					return bosherr.WrapError(err, "Creating service")
 				}
 			}
 			lock.Unlock()
@@ -350,7 +349,7 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 	var err error
 	for _, srt := range secrets {
 		if _, err := coreClient.Secrets(ns).Get(srt.Name); err == nil {
-			return errors.New("Secret name " + srt.Name + " already exists.")
+			return bosherr.Error("Secret name " + srt.Name + " already exists.")
 		}
 
 		var secretType v1.SecretType
@@ -369,7 +368,7 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 		for k, v := range srt.Data {
 			if k == ".dockercfg" {
 				if data[k], err = ioutil.ReadFile(v); err != nil {
-					return err
+					return bosherr.Errorf("Reading dockerfile %s", v)
 				}
 			} else {
 				data[k] = []byte(v)
@@ -394,7 +393,7 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 
 		_, err = coreClient.Secrets(ns).Create(secret)
 		if err != nil {
-			return err
+			return bosherr.WrapError(err, "Creating secret by client")
 		}
 	}
 
@@ -412,7 +411,7 @@ func createPod(podClient core.PodInterface, ns, agentID, image string, network c
 
 	resourceReqs, err := getPodResourceRequirements(resources)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Getting pod resource requirements")
 	}
 
 	return podClient.Create(&v1.Pod{
@@ -552,12 +551,12 @@ func createDeployment(deploymentClient extensions.DeploymentInterface,
 func getPodResourceRequirements(resources Resources) (v1.ResourceRequirements, error) {
 	limits, err := getResourceList(resources.Limits)
 	if err != nil {
-		return v1.ResourceRequirements{}, err
+		return v1.ResourceRequirements{}, bosherr.WrapError(err, "Getting pod resource requirements")
 	}
 
 	requests, err := getResourceList(resources.Requests)
 	if err != nil {
-		return v1.ResourceRequirements{}, err
+		return v1.ResourceRequirements{}, bosherr.WrapError(err, "Getting resource list")
 	}
 
 	return v1.ResourceRequirements{Limits: limits, Requests: requests}, nil
@@ -572,12 +571,12 @@ func getResourceList(resourceList ResourceList) (v1.ResourceList, error) {
 	for k, v := range resourceList {
 		quantity, err := resource.ParseQuantity(v)
 		if err != nil {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Parsing quantity")
 		}
 
 		name, err := kubeResourceName(k)
 		if err != nil {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Getting kube resource name")
 		}
 		list[name] = quantity
 	}
@@ -592,6 +591,6 @@ func kubeResourceName(name ResourceName) (v1.ResourceName, error) {
 	case ResourceCPU:
 		return v1.ResourceCPU, nil
 	default:
-		return "", fmt.Errorf("%s is not a supported resource type", name)
+		return "", bosherr.Errorf("%s is not a supported resource type", name)
 	}
 }

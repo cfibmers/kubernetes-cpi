@@ -13,6 +13,8 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("DeleteDisk", func() {
@@ -79,7 +81,7 @@ var _ = Describe("DeleteDisk", func() {
 
 		It("gets a client for the appropriate context", func() {
 			err := diskDeleter.DeleteDisk(diskCID)
-			Expect(err).To(MatchError("boom"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("boom"), "Creating client")))
 		})
 	})
 

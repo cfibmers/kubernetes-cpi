@@ -2,9 +2,9 @@ package cpi
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"reflect"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 type Request struct {
@@ -37,24 +37,24 @@ func Dispatch(req *Request, actionFunc interface{}) (*Response, error) {
 	}
 
 	if argCount < requiredArgCount {
-		return nil, fmt.Errorf("Not enough arguments: have %d, want %d", argCount, requiredArgCount)
+		return nil, bosherr.Errorf("Not enough arguments: have %d, want %d", argCount, requiredArgCount)
 	}
 
 	if argCount > requiredArgCount && !actionType.IsVariadic() {
-		return nil, fmt.Errorf("Too many arguments: have %d, want %d", argCount, requiredArgCount)
+		return nil, bosherr.Errorf("Too many arguments: have %d, want %d", argCount, requiredArgCount)
 	}
 
 	var args []reflect.Value
 	for i, arg := range req.Args {
 		bytes, err := json.Marshal(arg)
 		if err != nil {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Marshalling arg")
 		}
 
 		argValue := newArgValue(actionType, i)
 		err = json.Unmarshal(bytes, argValue.Interface())
 		if err != nil {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Unmarshalling arg")
 		}
 
 		args = append(args, reflect.Indirect(argValue))
@@ -80,7 +80,7 @@ func newArgValue(actionType reflect.Type, index int) reflect.Value {
 
 func newResponse(result []reflect.Value) (*Response, error) {
 	if len(result) < 1 || len(result) > 2 {
-		return nil, errors.New("Too many action results")
+		return nil, bosherr.Error("Too many action results")
 	}
 
 	var resultValue, errValue reflect.Value
@@ -95,11 +95,11 @@ func newResponse(result []reflect.Value) (*Response, error) {
 	case 2:
 		resultValue, errValue = result[0], result[1]
 		if !isErrorValue(errValue) {
-			return nil, errors.New("Action error is not an error")
+			return nil, bosherr.Error("Action error is not an error")
 		}
 
 	default:
-		return nil, errors.New("Invalid action results")
+		return nil, bosherr.Error("Invalid action results")
 	}
 
 	resp := &Response{}

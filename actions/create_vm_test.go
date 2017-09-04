@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
+
 	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
@@ -150,7 +152,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("gets a client for the appropriate context", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("boom"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("boom"), "Creating client")))
 			})
 		})
 
@@ -210,7 +212,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("returns an error", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("namespace-welp"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("namespace-welp"), "Creating namespace")))
 				Expect(fakeClient.MatchingActions("create", "namespaces")).To(HaveLen(1))
 			})
 		})
@@ -222,7 +224,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("returns an error", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("a network is required"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("a network is required"), "Getting network")))
 			})
 		})
 
@@ -252,7 +254,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("returns an error", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("multiple networks not supported"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("multiple networks not supported"), "Getting network")))
 			})
 		})
 
@@ -283,7 +285,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("returns an error", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("configmap-welp"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("configmap-welp"), "Creating config map")))
 				Expect(fakeClient.MatchingActions("create", "configmaps")).To(HaveLen(1))
 			})
 		})
@@ -472,7 +474,7 @@ var _ = Describe("CreateVM", func() {
 
 				It("returns an error", func() {
 					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-					Expect(err).To(MatchError("service-welp"))
+					Expect(err.Error()).To(ContainSubstring("service-welp"))
 					Expect(fakeClient.MatchingActions("create", "services")).To(HaveLen(1))
 				})
 			})
@@ -560,7 +562,7 @@ var _ = Describe("CreateVM", func() {
 					Expect(err).NotTo(HaveOccurred())
 					_, err = vmCreator.Create(agentID+"uniqueAgentId", stemcellCID, cloudProps, networks, diskCIDs, env)
 					Expect(err).To(HaveOccurred())
-					Expect(err).To(MatchError("Secret name " + cloudProps.Secrets[0].Name + " already exists."))
+					Expect(err).To(MatchError(bosherr.WrapError(errors.New("Secret name "+cloudProps.Secrets[0].Name+" already exists."), "Creating secret")))
 				})
 
 				It("returns an error", func() {
@@ -568,7 +570,7 @@ var _ = Describe("CreateVM", func() {
 						return true, nil, errors.New("secret-welp")
 					})
 					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-					Expect(err).To(MatchError("secret-welp"))
+					Expect(err.Error()).To(ContainSubstring("secret-welp"))
 					Expect(fakeClient.MatchingActions("create", "secrets")).To(HaveLen(1))
 				})
 			})
@@ -733,7 +735,7 @@ var _ = Describe("CreateVM", func() {
 
 				It("returns an error", func() {
 					_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-					Expect(err).To(MatchError("goo is not a supported resource type"))
+					Expect(err.Error()).To(ContainSubstring("goo is not a supported resource type"))
 				})
 			})
 		})
@@ -747,7 +749,7 @@ var _ = Describe("CreateVM", func() {
 
 			It("returns an error", func() {
 				_, err := vmCreator.Create(agentID, stemcellCID, cloudProps, networks, diskCIDs, env)
-				Expect(err).To(MatchError("pods-welp"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("pods-welp"), "Creating pod")))
 				Expect(fakeClient.MatchingActions("create", "pods")).To(HaveLen(1))
 			})
 		})
@@ -819,7 +821,7 @@ var _ = Describe("CreateVM", func() {
 			It("returns an error", func() {
 				_, err := vmCreator.InstanceSettings(agentID, networks, env)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(BeAssignableToTypeOf(&json.UnsupportedTypeError{}))
+				Expect(err.Error()).To(ContainSubstring("Remarshalling network"))
 			})
 		})
 	})

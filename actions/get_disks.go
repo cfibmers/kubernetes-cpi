@@ -5,9 +5,11 @@ import (
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
-	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/v1"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type DiskGetter struct {
@@ -18,7 +20,7 @@ func (d *DiskGetter) GetDisks(vmcid cpi.VMCID) ([]cpi.DiskCID, error) {
 	context, agentID := ParseVMCID(vmcid)
 	client, err := d.ClientProvider.New(context)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Creating client")
 	}
 
 	pod, err := client.Pods().Get("agent-" + agentID)
@@ -28,14 +30,14 @@ func (d *DiskGetter) GetDisks(vmcid cpi.VMCID) ([]cpi.DiskCID, error) {
 				return []cpi.DiskCID{}, nil
 			}
 		}
-		return nil, err
+		return nil, bosherr.WrapError(err, "Getting pod")
 	}
 
 	diskIDs := []cpi.DiskCID{}
 	for _, v := range pod.Spec.Volumes {
 		pvc, err := getPVClaim(client.PersistentVolumeClaims(), v.VolumeSource)
 		if err != nil && !isNotFoundStatusError(err) {
-			return nil, err
+			return nil, bosherr.WrapError(err, "Getting PVC")
 		}
 
 		if pvc == nil {

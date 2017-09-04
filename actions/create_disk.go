@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -15,6 +14,8 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/labels"
 	"k8s.io/client-go/pkg/watch"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 type CreateDiskCloudProperties struct {
@@ -34,17 +35,17 @@ type DiskCreator struct {
 func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties, vmcid cpi.VMCID) (cpi.DiskCID, error) {
 	diskID, err := d.GUIDGeneratorFunc()
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating disk")
 	}
 
 	volumeSize, err := resource.ParseQuantity(fmt.Sprintf("%dGi", size))
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Parsing quantity")
 	}
 
 	client, err := d.ClientProvider.New(cloudProps.Context)
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating client")
 	}
 
 	// volumeName := "volume-" + diskID
@@ -93,17 +94,17 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 	})
 
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Creating PVC")
 	}
 
 	ready, err := d.waitForDisk(client.PersistentVolumeClaims(), diskID, pvc.ResourceVersion)
 
 	if err != nil {
-		return "", err
+		return "", bosherr.WrapError(err, "Waiting for disk")
 	}
 
 	if !ready {
-		return "", errors.New("Disk creation failed with a timeout")
+		return "", bosherr.Error("Disk creation failed with a timeout")
 	}
 	return NewDiskCID(client.Context(), diskID), nil
 }
@@ -111,7 +112,7 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface, diskID string, resourceVersion string) (bool, error) {
 	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/disk-id=" + diskID)
 	if err != nil {
-		return false, err
+		return false, bosherr.WrapError(err, "Parsing disk selector")
 	}
 
 	listOptions := v1.ListOptions{
@@ -125,7 +126,7 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 
 	pvcWatch, err := pvcService.Watch(listOptions)
 	if err != nil {
-		return false, err
+		return false, bosherr.WrapError(err, "Watching PVC")
 	}
 	defer pvcWatch.Stop()
 
@@ -136,7 +137,7 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 			case watch.Modified:
 				pvc, ok := event.Object.(*v1.PersistentVolumeClaim)
 				if !ok {
-					return false, fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return false, bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 
 				if isDiskReady(pvc) {
@@ -144,7 +145,7 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 				}
 
 			default:
-				return false, fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
+				return false, bosherr.Errorf("Unexpected pvc watch event: %s", event.Type)
 			}
 
 		case <-timer.C():

@@ -14,12 +14,16 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 )
 
 const (
 	DefaultDiskReadyTimeout  = 600 * time.Second
 	DefaultPostRecreateDelay = 15 * time.Second
 	DefaultPodReadyTimeout   = 300 * time.Second
+	MainLogTag               = "main"
 )
 
 var agentConfigFlag = flag.String(
@@ -34,14 +38,9 @@ var kubeConfigFlag = flag.String(
 	"Path to the serialized kubernetes configuration file",
 )
 
-var debugFlag = flag.Bool(
-	"debug",
-	false,
-	"Write CPI requests and responses to os.Stderr",
-)
-
 func main() {
 	flag.Parse()
+	logger := boshlog.NewWriterLogger(boshlog.LevelDebug, os.Stderr)
 
 	kubeConf, err := loadKubeConfig(*kubeConfigFlag)
 	if err != nil {
@@ -58,7 +57,7 @@ func main() {
 		panic(err)
 	}
 
-	debugJSON("request", payload)
+	logger.DebugWithDetails(MainLogTag, "request", string(payload))
 
 	var req cpi.Request
 	err = json.Unmarshal(payload, &req)
@@ -170,27 +169,20 @@ func main() {
 		panic(err)
 	}
 
-	debugJSON("response", response)
-	fmt.Printf("%s", response)
-}
-
-func debugJSON(stem string, payload []byte) {
-	if *debugFlag {
-		fmt.Fprintf(os.Stderr, `{ "%s": %s }%c`, stem, payload, '\n')
-	}
+	logger.DebugWithDetails(MainLogTag, "response", string(response))
 }
 
 func loadKubeConfig(path string) (*config.Kubernetes, error) {
 	kubeConfigFile, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapErrorf(err, "Opening kubeConfigFile %s", path)
 	}
 	defer kubeConfigFile.Close()
 
 	var kubeConf config.Kubernetes
 	err = json.NewDecoder(kubeConfigFile).Decode(&kubeConf)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Decoding kubeConfigFile")
 	}
 
 	return &kubeConf, nil
@@ -199,14 +191,14 @@ func loadKubeConfig(path string) (*config.Kubernetes, error) {
 func loadAgentConfig(path string) (*config.Agent, error) {
 	agentConfigFile, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapErrorf(err, "Loading agentConfigFile %s", path)
 	}
 	defer agentConfigFile.Close()
 
 	var agentConf config.Agent
 	err = json.NewDecoder(agentConfigFile).Decode(&agentConf)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Decoding agentConfigFile")
 	}
 
 	return &agentConf, nil

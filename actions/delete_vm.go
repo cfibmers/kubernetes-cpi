@@ -4,8 +4,10 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
+
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/labels"
@@ -20,22 +22,22 @@ func (v *VMDeleter) Delete(vmcid cpi.VMCID) error {
 
 	client, err := v.ClientProvider.New(context)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating client")
 	}
 
 	err = deletePod(client.Pods(), agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Deleting pod")
 	}
 
 	err = deleteServices(client.Services(), agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Deleting services")
 	}
 
 	err = deleteConfigMap(client.ConfigMaps(), agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Deleting configmaps")
 	}
 
 	return nil
@@ -54,18 +56,18 @@ func deleteConfigMap(configMapService core.ConfigMapInterface, agentID string) e
 func deleteServices(serviceClient core.ServiceInterface, agentID string) error {
 	agentSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Parsing agent selector")
 	}
 
 	serviceList, err := serviceClient.List(v1.ListOptions{LabelSelector: agentSelector.String()})
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Listing service")
 	}
 
 	for _, service := range serviceList.Items {
 		err := serviceClient.Delete(service.Name, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 		if err != nil {
-			return err
+			return bosherr.WrapErrorf(err, "Deleting service %s", service.Name)
 		}
 	}
 

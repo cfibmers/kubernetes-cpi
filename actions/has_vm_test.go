@@ -11,6 +11,8 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/testing"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("VMFinder", func() {
@@ -68,7 +70,7 @@ var _ = Describe("VMFinder", func() {
 
 			It("returns an error", func() {
 				_, err := vmFinder.HasVM(cpi.VMCID("context-name:agentID"))
-				Expect(err).To(MatchError("welp"))
+				Expect(err.Error()).To(ContainSubstring("welp"))
 			})
 		})
 	})
@@ -108,7 +110,7 @@ var _ = Describe("VMFinder", func() {
 
 			It("returns an error", func() {
 				_, _, err := vmFinder.FindVM(cpi.VMCID("context-name:agentID"))
-				Expect(err).To(MatchError("welp"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("welp"), "Creating client")))
 			})
 		})
 
@@ -128,7 +130,7 @@ var _ = Describe("VMFinder", func() {
 
 			It("returns an error", func() {
 				_, _, err := vmFinder.FindVM(cpi.VMCID("context-name:agentID"))
-				Expect(err).To(MatchError("welp"))
+				Expect(err).To(MatchError(bosherr.WrapError(errors.New("welp"), "Listing pod")))
 				Expect(fakeClient.Actions()).To(HaveLen(1))
 			})
 		})
