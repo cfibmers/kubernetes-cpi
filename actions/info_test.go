@@ -11,7 +11,7 @@ var _ = Describe("Info", func() {
 		It("returns the info about CPI", func() {
 			info := actions.Info()
 			expect_info := make(map[string]string)
-			expect_info["api_version"] = "2.0"
+			expect_info["api_version"] = "1.0"
 			Expect(info).To(Equal(expect_info))
 		})
 	})
