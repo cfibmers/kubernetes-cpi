@@ -1,10 +1,7 @@
 {
-  "request": {
-    "method":"info",
-    "arguments":[],
-    "context":{
-      "director_uuid":"b5769b47-1193-4b9e-91b9-caee23a4b976",
-      "request_id":"965697"
-    }
+  "method": "info",
+  "arguments": [],
+  "context": {
+    "director_uuid": "director-id"
   }
 }

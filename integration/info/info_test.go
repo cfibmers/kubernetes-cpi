@@ -1,4 +1,4 @@
-package stemcell_test
+package info
 
 import (
 	"encoding/json"
@@ -9,6 +9,9 @@ import (
 	. "github.com/onsi/gomega"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
 )
+
+const configPath = "integration/test_assets/cpi_methods/config.json"
+const agentPath = "integration/test_assets/cpi_methods/agent.json"
 
 var _ = Describe("Checking info", func() {
 	var (
@@ -48,14 +51,14 @@ var _ = Describe("Checking info", func() {
 		It("Returns a valid result", func() {
 			outputBytes, err := testHelper.RunCpi(rootTemplatePath, tmpConfigPath, agentPath, jsonPayload)
 			Expect(err).ToNot(HaveOccurred())
-			expect_info := make(map[string]string)
-			expect_info["api_version"] = "2.0"
+			expect_info := make(map[string]interface{})
+			expect_info["api_version"] = "1.0"
 			err = json.Unmarshal(outputBytes, &resultOutput)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resultOutput["result"]).ToNot(BeNil())
 			Expect(resultOutput["error"]).To(BeNil())
 			Expect(resultOutput["log"]).To(BeEmpty())
-			Expect(resultOutput["result"]).To(expect_info)
+			Expect(resultOutput["result"]).To(Equal(expect_info))
 		})
 	})
 })
