@@ -1,0 +1,7 @@
+{
+  "method": "info",
+  "arguments": [],
+  "context": {
+    "director_uuid": "director-id"
+  }
+}
