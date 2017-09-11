@@ -16,14 +16,12 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
-	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 )
 
 const (
 	DefaultDiskReadyTimeout  = 600 * time.Second
 	DefaultPostRecreateDelay = 15 * time.Second
 	DefaultPodReadyTimeout   = 300 * time.Second
-	MainLogTag               = "main"
 )
 
 var agentConfigFlag = flag.String(
@@ -38,9 +36,14 @@ var kubeConfigFlag = flag.String(
 	"Path to the serialized kubernetes configuration file",
 )
 
+var debugFlag = flag.Bool(
+	"debug",
+	false,
+	"Write CPI requests and responses to os.Stderr",
+)
+
 func main() {
 	flag.Parse()
-	logger := boshlog.NewWriterLogger(boshlog.LevelDebug, os.Stderr)
 
 	kubeConf, err := loadKubeConfig(*kubeConfigFlag)
 	if err != nil {
@@ -57,7 +60,7 @@ func main() {
 		panic(err)
 	}
 
-	logger.DebugWithDetails(MainLogTag, "request", string(payload))
+	debugJSON("request", payload)
 
 	var req cpi.Request
 	err = json.Unmarshal(payload, &req)
@@ -82,7 +85,7 @@ func main() {
 	case "delete_stemcell":
 		result, err = cpi.Dispatch(&req, actions.DeleteStemcell)
 
-	// VM management
+		// VM management
 	case "create_vm":
 		vmCreator := &actions.VMCreator{
 			AgentConfig:    agentConf,
@@ -102,7 +105,7 @@ func main() {
 		vmMetadataSetter := actions.VMMetadataSetter{ClientProvider: provider}
 		result, err = cpi.Dispatch(&req, vmMetadataSetter.SetVMMetadata)
 
-	// Disk management
+		// Disk management
 	case "create_disk":
 		diskCreator := actions.DiskCreator{
 			ClientProvider:    provider,
@@ -146,7 +149,7 @@ func main() {
 		diskGetter := actions.DiskGetter{ClientProvider: provider}
 		result, err = cpi.Dispatch(&req, diskGetter.GetDisks)
 
-	// Not implemented
+		// Not implemented
 	case "configure_networks":
 		result, err = nil, &cpi.NotSupportedError{}
 
@@ -172,7 +175,14 @@ func main() {
 		panic(err)
 	}
 
-	logger.DebugWithDetails(MainLogTag, "response", string(response))
+	debugJSON("response", response)
+	fmt.Printf("%s", response)
+}
+
+func debugJSON(stem string, payload []byte) {
+	if *debugFlag {
+		fmt.Fprintf(os.Stderr, `{ "%s": %s }%c`, stem, payload, '\n')
+	}
 }
 
 func loadKubeConfig(path string) (*config.Kubernetes, error) {

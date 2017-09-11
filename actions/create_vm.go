@@ -368,7 +368,7 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 		for k, v := range srt.Data {
 			if k == ".dockercfg" {
 				if data[k], err = ioutil.ReadFile(v); err != nil {
-					return bosherr.Errorf("Reading dockerfile %s", v)
+					return bosherr.WrapErrorf(err,"Reading dockerfile %s", v)
 				}
 			} else {
 				data[k] = []byte(v)
