@@ -44,7 +44,7 @@ var _ = Describe("Remarshal", func() {
 			ch := make(chan struct{})
 
 			err := cpi.Remarshal(ch, &untyped)
-			Expect(err).To(BeAssignableToTypeOf(&json.UnsupportedTypeError{}))
+			Expect(err.Error()).To(ContainSubstring("Remarshalling source"))
 		})
 	})
 

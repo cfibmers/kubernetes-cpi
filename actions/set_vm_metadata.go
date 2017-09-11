@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/pkg/util/strategicpatch"
 	"k8s.io/client-go/pkg/util/validation"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 type VMMetadataSetter struct {
@@ -20,17 +22,17 @@ func (v *VMMetadataSetter) SetVMMetadata(vmcid cpi.VMCID, metadata map[string]st
 
 	client, err := v.ClientProvider.New(context)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating a client")
 	}
 
 	pod, err := client.Pods().Get("agent-" + agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Getting pod")
 	}
 
 	old, err := json.Marshal(pod)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Marshalling old pod")
 	}
 
 	for k, v := range metadata {
@@ -42,17 +44,17 @@ func (v *VMMetadataSetter) SetVMMetadata(vmcid cpi.VMCID, metadata map[string]st
 
 	new, err := json.Marshal(pod)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Marshalling new pod")
 	}
 
 	patch, err := strategicpatch.CreateTwoWayMergePatch(old, new, pod)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating TwoWayMergePatch")
 	}
 
 	_, err = client.Pods().Patch(pod.Name, api.StrategicMergePatchType, patch)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Patching pod")
 	}
 
 	return nil

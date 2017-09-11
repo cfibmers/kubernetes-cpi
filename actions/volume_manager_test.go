@@ -19,6 +19,8 @@ import (
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/pkg/watch"
 	"k8s.io/client-go/testing"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("VolumeManager", func() {
@@ -382,7 +384,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("get-cm-welp"))
+				Expect(err.Error()).To(ContainSubstring("get-cm-welp"))
 			})
 		})
 
@@ -395,7 +397,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("update-cm-welp"))
+				Expect(err.Error()).To(ContainSubstring("update-cm-welp"))
 			})
 		})
 
@@ -412,7 +414,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(BeAssignableToTypeOf(&json.SyntaxError{}))
+				Expect(err.Error()).To(ContainSubstring("Unmarshalling instance settings"))
 			})
 		})
 
@@ -425,7 +427,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("get-pods-welp"))
+				Expect(err.Error()).To(ContainSubstring("get-pods-welp"))
 			})
 		})
 
@@ -438,7 +440,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("delete-pods-welp"))
+				Expect(err.Error()).To(ContainSubstring("delete-pods-welp"))
 			})
 		})
 
@@ -451,7 +453,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("create-pods-welp"))
+				Expect(err.Error()).To(ContainSubstring("create-pods-welp"))
 			})
 		})
 
@@ -464,7 +466,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("watch-pods-welp"))
+				Expect(err.Error()).To(ContainSubstring("watch-pods-welp"))
 			})
 		})
 
@@ -477,7 +479,7 @@ var _ = Describe("VolumeManager", func() {
 
 			It("returns an error", func() {
 				err := volumeManager.AttachDisk(vmcid, diskCID)
-				Expect(err).To(MatchError("Unexpected object type: *v1.ReplicationController"))
+				Expect(err.Error()).To(ContainSubstring("Unexpected object type: *v1.ReplicationController"))
 			})
 		})
 
@@ -493,7 +495,8 @@ var _ = Describe("VolumeManager", func() {
 
 				Consistently(result).ShouldNot(Receive())
 				fakeClock.Increment(volumeManager.PodReadyTimeout + time.Second)
-				Eventually(result).Should(Receive(MatchError("Pod recreate failed with a timeout")))
+				Eventually(result).Should(Receive(MatchError(bosherr.WrapError(
+					errors.New("Pod recreate failed with a timeout"), "Recreating pod to attach disk"))))
 			})
 		})
 	})

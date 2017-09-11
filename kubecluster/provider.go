@@ -1,6 +1,7 @@
 package kubecluster
 
 import (
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -31,17 +32,17 @@ func (p *Provider) New(context string) (Client, error) {
 
 	restConfig, err := kubeClientConfig.ClientConfig()
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Getting kubeClientConfig")
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Creating a new clientset from config")
 	}
 
 	ns, _, err := kubeClientConfig.Namespace()
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Getting namespace based on client and context")
 	}
 
 	return &client{

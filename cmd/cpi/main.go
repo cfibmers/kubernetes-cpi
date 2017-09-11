@@ -14,6 +14,8 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 const (
@@ -83,7 +85,7 @@ func main() {
 	case "delete_stemcell":
 		result, err = cpi.Dispatch(&req, actions.DeleteStemcell)
 
-	// VM management
+		// VM management
 	case "create_vm":
 		vmCreator := &actions.VMCreator{
 			AgentConfig:    agentConf,
@@ -103,7 +105,7 @@ func main() {
 		vmMetadataSetter := actions.VMMetadataSetter{ClientProvider: provider}
 		result, err = cpi.Dispatch(&req, vmMetadataSetter.SetVMMetadata)
 
-	// Disk management
+		// Disk management
 	case "create_disk":
 		diskCreator := actions.DiskCreator{
 			ClientProvider:    provider,
@@ -147,7 +149,7 @@ func main() {
 		diskGetter := actions.DiskGetter{ClientProvider: provider}
 		result, err = cpi.Dispatch(&req, diskGetter.GetDisks)
 
-	// Not implemented
+		// Not implemented
 	case "configure_networks":
 		result, err = nil, &cpi.NotSupportedError{}
 
@@ -186,14 +188,14 @@ func debugJSON(stem string, payload []byte) {
 func loadKubeConfig(path string) (*config.Kubernetes, error) {
 	kubeConfigFile, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapErrorf(err, "Opening kubeConfigFile %s", path)
 	}
 	defer kubeConfigFile.Close()
 
 	var kubeConf config.Kubernetes
 	err = json.NewDecoder(kubeConfigFile).Decode(&kubeConf)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Decoding kubeConfigFile")
 	}
 
 	return &kubeConf, nil
@@ -202,14 +204,14 @@ func loadKubeConfig(path string) (*config.Kubernetes, error) {
 func loadAgentConfig(path string) (*config.Agent, error) {
 	agentConfigFile, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapErrorf(err, "Loading agentConfigFile %s", path)
 	}
 	defer agentConfigFile.Close()
 
 	var agentConf config.Agent
 	err = json.NewDecoder(agentConfigFile).Decode(&agentConf)
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Decoding agentConfigFile")
 	}
 
 	return &agentConf, nil

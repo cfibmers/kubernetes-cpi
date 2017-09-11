@@ -2,8 +2,6 @@ package actions
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -12,10 +10,12 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster"
-	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/labels"
 	"k8s.io/client-go/pkg/watch"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
+	core "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type VolumeManager struct {
@@ -37,17 +37,17 @@ func (v *VolumeManager) AttachDisk(vmcid cpi.VMCID, diskCID cpi.DiskCID) error {
 	vmContext, agentID := ParseVMCID(vmcid)
 	context, diskID := ParseDiskCID(diskCID)
 	if context != vmContext {
-		return fmt.Errorf("Kubernetes disk and resource pool contexts must be the same: disk: %q, resource pool: %q", context, vmContext)
+		return bosherr.Errorf("Kubernetes disk and resource pool contexts must be the same: disk: %q, resource pool: %q", context, vmContext)
 	}
 
 	client, err := v.ClientProvider.New(context)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating client")
 	}
 
 	err = v.recreatePod(client, Add, agentID, diskID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Recreating pod to attach disk")
 	}
 
 	return nil
@@ -57,17 +57,17 @@ func (v *VolumeManager) DetachDisk(vmcid cpi.VMCID, diskCID cpi.DiskCID) error {
 	vmContext, agentID := ParseVMCID(vmcid)
 	context, diskID := ParseDiskCID(diskCID)
 	if context != vmContext {
-		return fmt.Errorf("Kubernetes disk and resource pool contexts must be the same: disk: %q, resource pool: %q", context, vmContext)
+		return bosherr.Errorf("Kubernetes disk and resource pool contexts must be the same: disk: %q, resource pool: %q", context, vmContext)
 	}
 
 	client, err := v.ClientProvider.New(context)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating client")
 	}
 
 	err = v.recreatePod(client, Remove, agentID, diskID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Recreating pod to detach disk")
 	}
 
 	return nil
@@ -77,12 +77,12 @@ func (v *VolumeManager) recreatePod(client kubecluster.Client, op Operation, age
 	podService := client.Pods()
 	pod, err := podService.Get("agent-" + agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Getting pod")
 	}
 
 	err = updateConfigMapDisks(client, op, agentID, diskID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Updating disk configMap")
 	}
 
 	updateVolumes(op, &pod.Spec, diskID)
@@ -105,21 +105,21 @@ func (v *VolumeManager) recreatePod(client kubecluster.Client, op Operation, age
 
 	err = podService.Delete("agent-"+agentID, &v1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Deleting pod")
 	}
 
 	updated, err := podService.Create(pod)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Creating pod")
 	}
 
 	ready, err := v.waitForPod(podService, agentID, updated.ResourceVersion)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Waiting for pod")
 	}
 
 	if !ready {
-		return errors.New("Pod recreate failed with a timeout")
+		return bosherr.Error("Pod recreate failed with a timeout")
 	}
 
 	// TODO: Need an agent readiness check that's real
@@ -132,13 +132,13 @@ func updateConfigMapDisks(client kubecluster.Client, op Operation, agentID, disk
 	configMapService := client.ConfigMaps()
 	cm, err := configMapService.Get("agent-" + agentID)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Getting configMaps")
 	}
 
 	var settings agent.Settings
 	err = json.Unmarshal([]byte(cm.Data["instance_settings"]), &settings)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Unmarshalling instance settings")
 	}
 
 	diskCID := string(NewDiskCID(client.Context(), diskID))
@@ -155,14 +155,14 @@ func updateConfigMapDisks(client kubecluster.Client, op Operation, agentID, disk
 
 	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "instance settings")
 	}
 
 	cm.Data["instance_settings"] = string(settingsJSON)
 
 	_, err = configMapService.Update(cm)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Updating configMap")
 	}
 
 	return nil
@@ -221,7 +221,7 @@ func removeVolume(spec *v1.PodSpec, diskID string) {
 func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string, resourceVersion string) (bool, error) {
 	agentSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentID)
 	if err != nil {
-		return false, err
+		return false, bosherr.WrapError(err, "Parsing agent selector")
 	}
 
 	listOptions := v1.ListOptions{
@@ -235,7 +235,7 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 
 	podWatch, err := podService.Watch(listOptions)
 	if err != nil {
-		return false, err
+		return false, bosherr.WrapError(err, "Watching pod")
 	}
 	defer podWatch.Stop()
 
@@ -246,7 +246,7 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if !ok {
-					return false, fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return false, bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 
 				if isAgentContainerRunning(pod) {
@@ -254,7 +254,7 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 				}
 
 			default:
-				return false, fmt.Errorf("Unexpected pod watch event: %s", event.Type)
+				return false, bosherr.Errorf("Unexpected pod watch event: %s", event.Type)
 			}
 
 		case <-timer.C():

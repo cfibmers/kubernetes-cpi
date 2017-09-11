@@ -6,7 +6,6 @@ import (
 	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
 	"github.ibm.com/Bluemix/kubernetes-cpi/cpi"
 	"github.ibm.com/Bluemix/kubernetes-cpi/kubecluster/fakes"
-	kubeerrors "k8s.io/client-go/pkg/api/errors"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/runtime"
@@ -14,6 +13,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
+	kubeerrors "k8s.io/client-go/pkg/api/errors"
 )
 
 var _ = Describe("DiskGetter", func() {
@@ -148,7 +150,7 @@ var _ = Describe("DiskGetter", func() {
 
 		It("returns an error", func() {
 			_, err := diskGetter.GetDisks(cpi.VMCID("context-name:agentID"))
-			Expect(err).To(MatchError("get-pod-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("get-pod-welp"), "Getting pod")))
 		})
 	})
 
@@ -178,7 +180,7 @@ var _ = Describe("DiskGetter", func() {
 
 		It("returns an error", func() {
 			_, err := diskGetter.GetDisks(cpi.VMCID("context-name:agentID"))
-			Expect(err).To(MatchError("get-pvc-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("get-pvc-welp"), "Getting PVC")))
 		})
 	})
 })

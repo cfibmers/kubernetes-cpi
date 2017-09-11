@@ -12,6 +12,8 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/testing"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("SetVMMetadata", func() {
@@ -102,7 +104,7 @@ var _ = Describe("SetVMMetadata", func() {
 
 		It("gets a client for the appropriate context", func() {
 			err := vmMetadataSetter.SetVMMetadata(vmcid, metadata)
-			Expect(err).To(MatchError("boom"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("boom"), "Creating a client")))
 		})
 	})
 
@@ -115,7 +117,7 @@ var _ = Describe("SetVMMetadata", func() {
 
 		It("returns an error", func() {
 			err := vmMetadataSetter.SetVMMetadata(vmcid, metadata)
-			Expect(err).To(MatchError("get-pods-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("get-pods-welp"), "Getting pod")))
 			Expect(fakeClient.MatchingActions("get", "pods")).To(HaveLen(1))
 		})
 	})
@@ -129,7 +131,7 @@ var _ = Describe("SetVMMetadata", func() {
 
 		It("returns an error", func() {
 			err := vmMetadataSetter.SetVMMetadata(vmcid, metadata)
-			Expect(err).To(MatchError("patch-pods-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("patch-pods-welp"), "Patching pod")))
 			Expect(fakeClient.MatchingActions("patch", "pods")).To(HaveLen(1))
 		})
 	})

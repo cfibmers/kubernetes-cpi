@@ -48,6 +48,18 @@
 			"revision": ""
 		},
 		{
+			"checksumSHA1": "FnR1zvUvK6aui2XELTqvuhY/T4g=",
+			"path": "github.com/cloudfoundry/bosh-utils/errors",
+			"revision": "4aa35ead814ff6c0cb77067ffd8808c5231d4eb0",
+			"revisionTime": "2017-09-01T21:39:03Z"
+		},
+		{
+			"checksumSHA1": "RtrrQw6iRXv5yPHrI+8Rv1ALBBI=",
+			"path": "github.com/cloudfoundry/bosh-utils/logger",
+			"revision": "4aa35ead814ff6c0cb77067ffd8808c5231d4eb0",
+			"revisionTime": "2017-09-01T21:39:03Z"
+		},
+		{
 			"path": "github.com/coreos/go-oidc/http",
 			"revision": ""
 		},

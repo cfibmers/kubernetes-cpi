@@ -136,7 +136,7 @@ var _ = Describe("Provider", func() {
 	Context("when an invalid context name is specified", func() {
 		It("raises an error", func() {
 			_, err := provider.New("does-not-exist")
-			Expect(err.Error()).To(Equal("invalid configuration: [context was not found for specified context: does-not-exist, cluster has no server defined]"))
+			Expect(err.Error()).To(ContainSubstring("invalid configuration: [context was not found for specified context: does-not-exist, cluster has no server defined]"))
 
 			Expect(server.ReceivedRequests()).To(HaveLen(0))
 		})

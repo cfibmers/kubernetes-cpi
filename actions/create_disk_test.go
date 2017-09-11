@@ -18,6 +18,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("CreateDisk", func() {
@@ -174,7 +176,7 @@ var _ = Describe("CreateDisk", func() {
 
 		It("gets a client for the appropriate context", func() {
 			_, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
-			Expect(err).To(MatchError("boom"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("boom"), "Creating client")))
 		})
 	})
 
@@ -187,7 +189,7 @@ var _ = Describe("CreateDisk", func() {
 
 		It("returns an error", func() {
 			_, err := diskCreator.CreateDisk(1, cloudProps, vmcid)
-			Expect(err).To(MatchError("create-pvc-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("create-pvc-welp"), "Creating PVC")))
 			Expect(fakeClient.MatchingActions("create", "persistentvolumeclaims")).To(HaveLen(1))
 		})
 	})

@@ -13,6 +13,8 @@ import (
 	"k8s.io/client-go/pkg/labels"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/testing"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("DeleteVM", func() {
@@ -70,7 +72,7 @@ var _ = Describe("DeleteVM", func() {
 
 		It("gets a client for the appropriate context", func() {
 			err := vmDeleter.Delete(vmcid)
-			Expect(err).To(MatchError("boom"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("boom"), "Creating client")))
 		})
 	})
 
@@ -142,7 +144,7 @@ var _ = Describe("DeleteVM", func() {
 
 		It("returns an error", func() {
 			err := vmDeleter.Delete(vmcid)
-			Expect(err).To(MatchError("pods-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("pods-welp"), "Deleting pod")))
 			Expect(fakeClient.MatchingActions("delete", "pods")).To(HaveLen(1))
 		})
 	})
@@ -156,7 +158,7 @@ var _ = Describe("DeleteVM", func() {
 
 		It("returns an error", func() {
 			err := vmDeleter.Delete(vmcid)
-			Expect(err).To(MatchError("configmaps-welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("configmaps-welp"), "Deleting configmaps")))
 			Expect(fakeClient.MatchingActions("delete", "configmaps")).To(HaveLen(1))
 		})
 	})
@@ -181,7 +183,7 @@ var _ = Describe("DeleteVM", func() {
 
 		It("returns an error", func() {
 			err := vmDeleter.Delete(vmcid)
-			Expect(err).To(MatchError("services-welp"))
+			Expect(err.Error()).To(ContainSubstring("services-welp"))
 			Expect(fakeClient.MatchingActions("delete", "services")).To(HaveLen(1))
 		})
 	})

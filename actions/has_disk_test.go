@@ -11,6 +11,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
 
 var _ = Describe("HasDisk", func() {
@@ -79,7 +81,7 @@ var _ = Describe("HasDisk", func() {
 
 		It("returns an error", func() {
 			_, err := diskFinder.HasDisk(cpi.DiskCID("context-name:missing"))
-			Expect(err).To(MatchError("welp"))
+			Expect(err).To(MatchError(bosherr.WrapError(errors.New("welp"), "Creating client")))
 		})
 	})
 
