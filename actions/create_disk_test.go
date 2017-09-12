@@ -83,7 +83,9 @@ var _ = Describe("CreateDisk", func() {
 		fakeProvider.NewReturns(fakeClient, nil)
 
 		cloudProps = actions.CreateDiskCloudProperties{
-			Context: "bosh",
+			Context:            "bosh",
+			StorageClass:       "fake-class",
+			StorageProvisioner: "fake-provisioner",
 		}
 
 		diskCreator = &actions.DiskCreator{
@@ -153,8 +155,8 @@ var _ = Describe("CreateDisk", func() {
 					"bosh.cloudfoundry.org/disk-id": "disk-guid",
 				},
 				Annotations: map[string]string{
-					"volume.beta.kubernetes.io/storage-class":       "ibmc-file-gold",
-					"volume.beta.kubernetes.io/storage-provisioner": "ibm.io/ibmc-file",
+					"volume.beta.kubernetes.io/storage-class":       "fake-class",
+					"volume.beta.kubernetes.io/storage-provisioner": "fake-provisioner",
 				},
 			},
 			Spec: v1.PersistentVolumeClaimSpec{

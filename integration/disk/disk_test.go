@@ -32,12 +32,17 @@ var _ = Describe("Disk and Volume Management", func() {
 		kubeConfig = os.Getenv("KUBECONFIG")
 		Expect(err).ToNot(HaveOccurred())
 
+		clusterName = os.Getenv("CLUSTER_NAME")
+		Expect(err).ToNot(HaveOccurred())
+
 		// This assumes you are in a certain directory - change?
 		pwd, _ := os.Getwd()
 		rootTemplatePath = filepath.Join(pwd, "..", "..")
 
 		replacementMap = map[string]string{
-			"context": clusterName,
+			"context":            clusterName,
+			"storageClass":       "ibmc-file-gold",
+			"storageProvisioner": "ibm.io/ibmc-file",
 		}
 
 		tmpConfigPath, err = testHelper.CreateTmpConfigFile(rootTemplatePath, configPath, kubeConfig)

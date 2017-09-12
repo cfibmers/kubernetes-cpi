@@ -19,7 +19,9 @@ import (
 )
 
 type CreateDiskCloudProperties struct {
-	Context string `json:"context"`
+	Context            string `json:"context"`
+	StorageClass       string `json:"storage_class"`
+	StorageProvisioner string `json:"storage_provisioner"`
 }
 
 // DiskCreator simply creates a PersistentVolumeClaim.
@@ -75,8 +77,8 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 			Name:      "disk-" + diskID,
 			Namespace: client.Namespace(),
 			Annotations: map[string]string{
-				"volume.beta.kubernetes.io/storage-class":       "ibmc-file-gold",
-				"volume.beta.kubernetes.io/storage-provisioner": "ibm.io/ibmc-file",
+				"volume.beta.kubernetes.io/storage-class":       cloudProps.StorageClass,
+				"volume.beta.kubernetes.io/storage-provisioner": cloudProps.StorageProvisioner,
 			},
 			Labels: map[string]string{
 				"bosh.cloudfoundry.org/disk-id": diskID,

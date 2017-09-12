@@ -3,7 +3,9 @@
   "arguments": [
     20,
     {
-      "context": "{{ .Context }}"
+      "context": "{{ .Context }}",
+      "storage_class": "{{ .StorageClass }}",
+      "storage_provisioner": "{{ .StorageProvisioner }}"
     },
     ""
   ],

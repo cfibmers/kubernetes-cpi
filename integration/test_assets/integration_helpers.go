@@ -24,10 +24,12 @@ import (
 )
 
 type cpiTemplate struct {
-	Context  string
-	DiskID   string
-	AgentID  string
-	Replicas string
+	Context            string
+	DiskID             string
+	AgentID            string
+	Replicas           string
+	StorageClass       string
+	StorageProvisioner string
 }
 
 type KubeConfigTemplate struct {
@@ -213,6 +215,12 @@ func GenerateCpiJsonPayload(methodName string, rootTemplatePath string, replacem
 	}
 	if val, exists = replacementMap["replicas"]; exists {
 		c.Replicas = val
+	}
+	if val, exists = replacementMap["storageClass"]; exists {
+		c.StorageClass = val
+	}
+	if val, exists = replacementMap["storageProvisioner"]; exists {
+		c.StorageProvisioner = val
 	}
 
 	t := template.New(fmt.Sprintf("%s.json", methodName))

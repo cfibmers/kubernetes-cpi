@@ -17,4 +17,3 @@ var _ = BeforeSuite(func() {
 	err := testHelper.ConnectCluster()
 	Expect(err).NotTo(HaveOccurred(), "Connecting cluster ...")
 })
-
