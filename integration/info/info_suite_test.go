@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"testing"
 	testHelper "github.ibm.com/Bluemix/kubernetes-cpi/integration/test_assets"
+	"testing"
 )
 
 func TestInfo(t *testing.T) {

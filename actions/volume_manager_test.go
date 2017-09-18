@@ -495,8 +495,7 @@ var _ = Describe("VolumeManager", func() {
 
 				Consistently(result).ShouldNot(Receive())
 				fakeClock.Increment(volumeManager.PodReadyTimeout + time.Second)
-				Eventually(result).Should(Receive(MatchError(bosherr.WrapError(
-					errors.New("Pod recreate failed with a timeout"), "Recreating pod to attach disk"))))
+				Eventually(result).Should(Receive(MatchError(bosherr.WrapError(bosherr.WrapError(errors.New("Pod create failed with a timeout"), "Waiting for pod recreate"), "Recreating pod to attach disk"))))
 			})
 		})
 	})
