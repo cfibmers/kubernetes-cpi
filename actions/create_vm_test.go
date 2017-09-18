@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
+
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
@@ -16,6 +19,7 @@ import (
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/runtime"
 	"k8s.io/client-go/pkg/util/intstr"
+	"k8s.io/client-go/pkg/watch"
 	"k8s.io/client-go/testing"
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/actions"
@@ -32,19 +36,51 @@ var _ = Describe("CreateVM", func() {
 	var (
 		fakeClient   *fakes.Client
 		fakeProvider *fakes.ClientProvider
+		fakeWatch    *watch.FakeWatcher
 		agentConf    *config.Agent
 
 		agentID  string
 		env      cpi.Environment
 		networks cpi.Networks
 
-		vmCreator *actions.VMCreator
+		vmCreator             *actions.VMCreator
+		deploymentMeta        v1.ObjectMeta
+		initialDeploymentSpec v1beta1.DeploymentSpec
 	)
 
 	BeforeEach(func() {
+		deploymentMeta = v1.ObjectMeta{
+			Name:      "agent-agent-id",
+			Namespace: "bosh-namespace",
+			Annotations: map[string]string{
+				"annotation-key": "annotation-value",
+			},
+			Labels: map[string]string{
+				"key": "value",
+			},
+			Generation: 1,
+		}
+
+		var one int32 = 1
+		initialDeploymentSpec = v1beta1.DeploymentSpec{
+			Replicas: &one,
+		}
+
 		fakeClient = fakes.NewClient()
 		fakeClient.ContextReturns("bosh")
 		fakeClient.NamespaceReturns("bosh-namespace")
+
+		fakeWatch = watch.NewFakeWithChanSize(1, false)
+		fakeWatch.Modify(&v1beta1.Deployment{
+			ObjectMeta: deploymentMeta,
+			Spec:       initialDeploymentSpec,
+			Status: v1beta1.DeploymentStatus{
+				ObservedGeneration: 1,
+				AvailableReplicas:  1,
+			},
+		})
+
+		fakeClient.PrependWatchReactor("*", testing.DefaultWatchReactor(fakeWatch, nil))
 
 		fakeProvider = &fakes.ClientProvider{}
 		fakeProvider.NewReturns(fakeClient, nil)
@@ -58,6 +94,8 @@ var _ = Describe("CreateVM", func() {
 		vmCreator = &actions.VMCreator{
 			ClientProvider: fakeProvider,
 			AgentConfig:    agentConf,
+			Clock:          fakeclock.NewFakeClock(time.Now()),
+			DeploymentReadyTimeout: 5 * time.Second,
 		}
 
 		agentID = "agent-id"
