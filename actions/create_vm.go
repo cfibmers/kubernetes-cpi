@@ -153,32 +153,27 @@ func (v *VMCreator) Create(
 	}
 
 	// create the config map
-	_, err = createConfigMap(client.ConfigMaps(), ns, agentID, instanceSettings)
-	if err != nil {
+	if _, err = createConfigMap(client.ConfigMaps(), ns, agentID, instanceSettings); err != nil {
 		return "", bosherr.WrapError(err, "Creating config map")
 	}
 
 	// create the service
-	err = createServices(client, ns, agentID, cloudProps.Services)
-	if err != nil {
+	if err = createServices(client, ns, agentID, cloudProps.Services); err != nil {
 		return "", bosherr.WrapError(err, "Creating services")
 	}
 
-	err = createSecret(client.Core(), ns, agentID, cloudProps.Secrets)
-	if err != nil {
+	if err = createSecret(client.Core(), ns, agentID, cloudProps.Secrets); err != nil {
 		return "", bosherr.WrapError(err, "Creating secret")
 	}
 
 	if cloudProps.Replicas == nil {
 		// create the pod
-		_, err = createPod(client.Pods(), ns, agentID, string(stemcellCID), *network, cloudProps.Resources)
-		if err != nil {
+		if _, err = createPod(client.Pods(), ns, agentID, string(stemcellCID), *network, cloudProps.Resources); err != nil {
 			return "", bosherr.WrapError(err, "Creating pod")
 		}
 	} else if *cloudProps.Replicas >= 1 {
 		// create the deployments
-		_, err := v.createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps)
-		if err != nil {
+		if _, err = v.createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps); err != nil {
 			return "", bosherr.WrapError(err, "Creating deployment")
 		}
 	} else {
