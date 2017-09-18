@@ -5,13 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"sync"
+	"time"
+
+	"code.cloudfoundry.org/clock"
 
 	core "k8s.io/client-go/kubernetes/typed/core/v1"
 	extensions "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	kubeerrors "k8s.io/client-go/pkg/api/errors"
 	api "k8s.io/client-go/pkg/api/v1"
 	v1beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/pkg/labels"
+	"k8s.io/client-go/pkg/watch"
 
 	"github.ibm.com/Bluemix/kubernetes-cpi/agent"
 	"github.ibm.com/Bluemix/kubernetes-cpi/config"
@@ -24,8 +30,10 @@ import (
 )
 
 type VMCreator struct {
-	AgentConfig    *config.Agent
-	ClientProvider kubecluster.ClientProvider
+	AgentConfig            *config.Agent
+	ClientProvider         kubecluster.ClientProvider
+	Clock                  clock.Clock
+	DeploymentReadyTimeout time.Duration
 }
 
 type Service struct {
@@ -170,7 +178,7 @@ func (v *VMCreator) Create(
 		}
 	} else if *cloudProps.Replicas >= 1 {
 		// create the deployments
-		_, err := createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps)
+		_, err := v.createDeployment(client.Deployments(), ns, agentID, string(stemcellCID), *network, cloudProps)
 		if err != nil {
 			return "", err
 		}
@@ -469,7 +477,7 @@ func createPod(podClient core.PodInterface, ns, agentID, image string, network c
 	})
 }
 
-func createDeployment(deploymentClient extensions.DeploymentInterface,
+func (v *VMCreator) createDeployment(deploymentClient extensions.DeploymentInterface,
 	ns, agentID, image string,
 	network cpi.Network,
 	cloudProps VMCloudProperties,
@@ -486,7 +494,8 @@ func createDeployment(deploymentClient extensions.DeploymentInterface,
 	if err != nil {
 		return nil, err
 	}
-	deployment := &v1beta1.Deployment{
+
+	deployment, err := deploymentClient.Create(&v1beta1.Deployment{
 		ObjectMeta: api.ObjectMeta{
 			Name:      "agent-" + agentID,
 			Namespace: ns,
@@ -496,7 +505,7 @@ func createDeployment(deploymentClient extensions.DeploymentInterface,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: map[string]string{
-						"app": "demo", // TODO
+						"bosh.cloudfoundry.org/agent-id": agentID,
 					},
 				},
 				Spec: v1.PodSpec{
@@ -544,9 +553,71 @@ func createDeployment(deploymentClient extensions.DeploymentInterface,
 			},
 			ProgressDeadlineSeconds: &ProgressDeadlineSeconds,
 		},
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return deploymentClient.Create(deployment)
+	ready, err := v.waitForDeployment(deploymentClient, agentID, deployment.ResourceVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ready {
+		return nil, errors.New("Deployment creation failed with a timeout.")
+	}
+	return deployment, nil
+}
+
+func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInterface, agentId, resourceVersion string) (bool, error) {
+	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentId)
+	if err != nil {
+		return false, err
+	}
+
+	listOptions := v1.ListOptions{
+		LabelSelector:   diskSelector.String(),
+		ResourceVersion: resourceVersion,
+		Watch:           true,
+	}
+
+	timer := v.Clock.NewTimer(v.DeploymentReadyTimeout)
+	defer timer.Stop()
+
+	deploymentWatch, err := deploymentService.Watch(listOptions)
+	if err != nil {
+		return false, err
+	}
+	defer deploymentWatch.Stop()
+
+	for {
+		select {
+		case event := <-deploymentWatch.ResultChan():
+			switch event.Type {
+			case watch.Modified:
+				deployment, ok := event.Object.(*v1beta1.Deployment)
+				if !ok {
+					return false, fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+				}
+				var isReady bool
+				isReady = isDeploymentReady(deployment)
+				if isReady {
+					return true, nil
+				}
+
+			default:
+				return false, fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
+			}
+
+		case <-timer.C():
+			return false, nil
+		}
+	}
+}
+
+func isDeploymentReady(deployment *v1beta1.Deployment) bool {
+	return deployment.Status.ObservedGeneration >= deployment.Generation &&
+		deployment.Status.AvailableReplicas == *deployment.Spec.Replicas
 }
 
 func getPodResourceRequirements(resources Resources) (v1.ResourceRequirements, error) {

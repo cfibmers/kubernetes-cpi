@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	DefaultDiskReadyTimeout  = 600 * time.Second
-	DefaultPostRecreateDelay = 15 * time.Second
-	DefaultPodReadyTimeout   = 300 * time.Second
+	DefaultDiskReadyTimeout       = 600 * time.Second
+	DefaultPostRecreateDelay      = 15 * time.Second
+	DefaultPodReadyTimeout        = 300 * time.Second
+	DefaultDeploymentReadyTimeout = 300 * time.Second
 )
 
 var agentConfigFlag = flag.String(
@@ -85,6 +86,8 @@ func main() {
 		vmCreator := &actions.VMCreator{
 			AgentConfig:    agentConf,
 			ClientProvider: provider,
+			Clock:          clock.NewClock(),
+			DeploymentReadyTimeout: DefaultDeploymentReadyTimeout,
 		}
 		result, err = cpi.Dispatch(&req, vmCreator.Create)
 
