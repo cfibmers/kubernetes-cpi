@@ -558,21 +558,18 @@ func (v *VMCreator) createDeployment(deploymentClient extensions.DeploymentInter
 		return nil, err
 	}
 
-	ready, err := v.waitForDeployment(deploymentClient, agentID, deployment.ResourceVersion)
+	err = v.waitForDeployment(deploymentClient, agentID, deployment.ResourceVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	if !ready {
-		return nil, errors.New("Deployment creation failed with a timeout.")
-	}
 	return deployment, nil
 }
 
-func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInterface, agentId, resourceVersion string) (bool, error) {
+func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInterface, agentId, resourceVersion string) error {
 	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentId)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	listOptions := v1.ListOptions{
@@ -586,7 +583,7 @@ func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInt
 
 	deploymentWatch, err := deploymentService.Watch(listOptions)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer deploymentWatch.Stop()
 
@@ -597,20 +594,20 @@ func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInt
 			case watch.Modified:
 				deployment, ok := event.Object.(*v1beta1.Deployment)
 				if !ok {
-					return false, fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 				var isReady bool
 				isReady = isDeploymentReady(deployment)
 				if isReady {
-					return true, nil
+					return nil
 				}
 
 			default:
-				return false, fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
+				return fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
 			}
 
 		case <-timer.C():
-			return false, nil
+			return errors.New("Deployment creation failed with a timeout.")
 		}
 	}
 }
