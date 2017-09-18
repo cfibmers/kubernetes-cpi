@@ -99,22 +99,17 @@ func (d *DiskCreator) CreateDisk(size uint, cloudProps CreateDiskCloudProperties
 		return "", bosherr.WrapError(err, "Creating PVC")
 	}
 
-	ready, err := d.waitForDisk(client.PersistentVolumeClaims(), diskID, pvc.ResourceVersion)
-
-	if err != nil {
+	if err := d.waitForDisk(client.PersistentVolumeClaims(), diskID, pvc.ResourceVersion); err != nil {
 		return "", bosherr.WrapError(err, "Waiting for disk")
 	}
 
-	if !ready {
-		return "", bosherr.Error("Disk creation failed with a timeout")
-	}
 	return NewDiskCID(client.Context(), diskID), nil
 }
 
-func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface, diskID string, resourceVersion string) (bool, error) {
+func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface, diskID string, resourceVersion string) error {
 	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/disk-id=" + diskID)
 	if err != nil {
-		return false, bosherr.WrapError(err, "Parsing disk selector")
+		return bosherr.WrapError(err, "Parsing disk selector")
 	}
 
 	listOptions := v1.ListOptions{
@@ -128,7 +123,7 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 
 	pvcWatch, err := pvcService.Watch(listOptions)
 	if err != nil {
-		return false, bosherr.WrapError(err, "Watching PVC")
+		return bosherr.WrapError(err, "Watching PVC")
 	}
 	defer pvcWatch.Stop()
 
@@ -139,19 +134,19 @@ func (d *DiskCreator) waitForDisk(pvcService core.PersistentVolumeClaimInterface
 			case watch.Modified:
 				pvc, ok := event.Object.(*v1.PersistentVolumeClaim)
 				if !ok {
-					return false, bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 
 				if isDiskReady(pvc) {
-					return true, nil
+					return nil
 				}
 
 			default:
-				return false, bosherr.Errorf("Unexpected pvc watch event: %s", event.Type)
+				return bosherr.Errorf("Unexpected pvc watch event: %s", event.Type)
 			}
 
 		case <-timer.C():
-			return false, nil
+			return bosherr.Error("Pod recreate failed with a timeout")
 		}
 	}
 }
