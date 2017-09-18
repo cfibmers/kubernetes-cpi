@@ -376,7 +376,7 @@ func createSecret(coreClient core.CoreV1Interface, ns, agentID string, secrets [
 		for k, v := range srt.Data {
 			if k == ".dockercfg" {
 				if data[k], err = ioutil.ReadFile(v); err != nil {
-					return bosherr.WrapErrorf(err,"Reading dockerfile %s", v)
+					return bosherr.WrapErrorf(err, "Reading dockerfile %s", v)
 				}
 			} else {
 				data[k] = []byte(v)
@@ -554,12 +554,11 @@ func (v *VMCreator) createDeployment(deploymentClient extensions.DeploymentInter
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, bosherr.WrapError(err, "Creating deployment")
 	}
 
-	err = v.waitForDeployment(deploymentClient, agentID, deployment.ResourceVersion)
-	if err != nil {
-		return nil, err
+	if err = v.waitForDeployment(deploymentClient, agentID, deployment.ResourceVersion); err != nil {
+		return nil, bosherr.WrapError(err, "Waiting for deployment")
 	}
 
 	return deployment, nil
@@ -568,7 +567,7 @@ func (v *VMCreator) createDeployment(deploymentClient extensions.DeploymentInter
 func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInterface, agentId, resourceVersion string) error {
 	diskSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentId)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Parsing disk selector")
 	}
 
 	listOptions := v1.ListOptions{
@@ -582,7 +581,7 @@ func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInt
 
 	deploymentWatch, err := deploymentService.Watch(listOptions)
 	if err != nil {
-		return err
+		return bosherr.WrapError(err, "Watching deployment")
 	}
 	defer deploymentWatch.Stop()
 
@@ -593,7 +592,7 @@ func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInt
 			case watch.Modified:
 				deployment, ok := event.Object.(*v1beta1.Deployment)
 				if !ok {
-					return fmt.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 				var isReady bool
 				isReady = isDeploymentReady(deployment)
@@ -602,11 +601,11 @@ func (v *VMCreator) waitForDeployment(deploymentService extensions.DeploymentInt
 				}
 
 			default:
-				return fmt.Errorf("Unexpected pvc watch event: %s", event.Type)
+				return bosherr.Errorf("Unexpected deployment watch event: %s", event.Type)
 			}
 
 		case <-timer.C():
-			return errors.New("Deployment creation failed with a timeout.")
+			return bosherr.Error("Deployment creation failed with a timeout.")
 		}
 	}
 }

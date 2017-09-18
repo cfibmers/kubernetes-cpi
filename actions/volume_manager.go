@@ -110,16 +110,11 @@ func (v *VolumeManager) recreatePod(client kubecluster.Client, op Operation, age
 
 	updated, err := podService.Create(pod)
 	if err != nil {
-		return bosherr.WrapError(err, "Creating pod")
+		return bosherr.WrapError(err, "Recreating pod")
 	}
 
-	ready, err := v.waitForPod(podService, agentID, updated.ResourceVersion)
-	if err != nil {
-		return bosherr.WrapError(err, "Waiting for pod")
-	}
-
-	if !ready {
-		return bosherr.Error("Pod recreate failed with a timeout")
+	if err := v.waitForPod(podService, agentID, updated.ResourceVersion); err != nil {
+		return bosherr.WrapError(err, "Waiting for pod recreate")
 	}
 
 	// TODO: Need an agent readiness check that's real
@@ -218,10 +213,10 @@ func removeVolume(spec *v1.PodSpec, diskID string) {
 	}
 }
 
-func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string, resourceVersion string) (bool, error) {
+func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string, resourceVersion string) error {
 	agentSelector, err := labels.Parse("bosh.cloudfoundry.org/agent-id=" + agentID)
 	if err != nil {
-		return false, bosherr.WrapError(err, "Parsing agent selector")
+		return bosherr.WrapError(err, "Parsing agent selector")
 	}
 
 	listOptions := v1.ListOptions{
@@ -235,7 +230,7 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 
 	podWatch, err := podService.Watch(listOptions)
 	if err != nil {
-		return false, bosherr.WrapError(err, "Watching pod")
+		return bosherr.WrapError(err, "Watching pod")
 	}
 	defer podWatch.Stop()
 
@@ -246,19 +241,19 @@ func (v *VolumeManager) waitForPod(podService core.PodInterface, agentID string,
 			case watch.Modified:
 				pod, ok := event.Object.(*v1.Pod)
 				if !ok {
-					return false, bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
+					return bosherr.Errorf("Unexpected object type: %v", reflect.TypeOf(event.Object))
 				}
 
 				if isAgentContainerRunning(pod) {
-					return true, nil
+					return nil
 				}
 
 			default:
-				return false, bosherr.Errorf("Unexpected pod watch event: %s", event.Type)
+				return bosherr.Errorf("Unexpected pod watch event: %s", event.Type)
 			}
 
 		case <-timer.C():
-			return false, nil
+			return bosherr.Error("Pod create failed with a timeout")
 		}
 	}
 }
