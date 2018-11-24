@@ -57,7 +57,7 @@ SWEET SUITE SUCCESS
 
 #### - Integration Tests
 
- 1. Integration Test will execute CPI actions against a real Kubernetes cluser, please setup CLI `bx` and `kubectl` described in [here](https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install).
+ 1. Integration Test will execute CPI actions against a real Kubernetes cluster, please setup CLI `bx` and `kubectl` described in [here](https://console.bluemix.net/docs/containers/cs_cli_install.html#cs_cli_install).
  2. Provide API endpoint, credentials and cluster name, etc., in your `.bashrc` or `.bash_profile`. There's an example config in [integration/env](integration/env).
  > **Note:**
 
